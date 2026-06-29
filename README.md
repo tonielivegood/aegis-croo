@@ -94,6 +94,8 @@ This adapter does not use the real CROO SDK yet. It does not perform real paymen
 
 Step 5B adds configuration and status boundaries only. `GET /cap/status` reports whether the mock adapter is active or whether real CAP mode is missing required provider configuration. Local tests do not use real CROO credentials, do not require the CROO SDK, and do not run real CAP network calls.
 
+Step 6B-minimal adds a safe real-mode SDK readiness probe for `GET /cap/status`: when real-mode configuration is present, it can verify only that the CROO SDK import and `AgentClient` initialization path are available. It does not verify real provider readiness, create or deliver orders, perform payment, lock escrow, settle, clear, upload files, update reputation, or submit on-chain delivery. Because the verified CROO Python SDK contract does not expose an official provider/service lookup or auth/status method, `real_cap_ready` remains `false` until official read-only verification or dashboard confirmation is added.
+
 If real CROO credentials are used later, keep them outside the repo in the runtime environment. Do not commit `.env` files or secret values. Real payment, escrow, settlement, reputation, or on-chain delivery must not be claimed until Step 6 verifies them through the CROO Dashboard and SDK.
 
 ## Safety

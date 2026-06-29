@@ -22,6 +22,10 @@ REAL_CAP_CONFIGURED_DISCLAIMER = (
     "Real CAP configuration is present, but Step 6 provider verification has "
     "not run. No real CAP action was performed."
 )
+REAL_CAP_CLIENT_INITIALIZED_REASON = (
+    "SDK client initialized, but provider/service readiness requires official "
+    "read-only verification or dashboard confirmation."
+)
 CAP_LIFECYCLE = ["NEGOTIATE_MOCK", "LOCK_MOCK", "DELIVER_LOCAL", "CLEAR_MOCK"]
 REAL_CAP_PENDING_DETAIL = (
     "Real CROO/CAP integration is pending SDK credentials and Step 6 "
@@ -83,4 +87,6 @@ class CAPStatusResponse(BaseModel):
     credential_status: str = Field(min_length=1)
     provider_agent_id: str = Field(min_length=1)
     disclaimer: str = Field(min_length=1)
+    client_init_status: str | None = None
+    readiness_reason: str | None = None
     missing: list[str] | None = None

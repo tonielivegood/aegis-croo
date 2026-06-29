@@ -1,9 +1,13 @@
+import os
+from importlib import import_module
+
 from src.aegis_croo.cap.config import configured_cap_mode, load_cap_provider_config
 from src.aegis_croo.cap.models import (
     CAPOrderRequest,
     CAPOrderResult,
     CAPStatusResponse,
     MOCK_CAP_STATUS_DISCLAIMER,
+    REAL_CAP_CLIENT_INITIALIZED_REASON,
     REAL_CAP_CONFIGURED_DISCLAIMER,
     REAL_CAP_MISSING_DISCLAIMER,
 )
@@ -58,15 +62,77 @@ class CAPAdapter:
                 missing=missing,
             )
 
+        return self._probe_real_cap_sdk_readiness(config)
+
+    def _probe_real_cap_sdk_readiness(self, config) -> CAPStatusResponse:
+        try:
+            croo_sdk = import_module("croo")
+        except ModuleNotFoundError:
+            return CAPStatusResponse(
+                cap_mode="real",
+                real_cap_ready=False,
+                adapter_status="REAL_CAP_SDK_MISSING",
+                sdk_import_status="missing_package",
+                service_id_status="present_unverified",
+                credential_status="present",
+                provider_agent_id=config.croo_provider_agent_id,
+                disclaimer=REAL_CAP_CONFIGURED_DISCLAIMER,
+                client_init_status="not_attempted",
+                readiness_reason=(
+                    "croo-sdk is not installed; SDK readiness was not checked."
+                ),
+                missing=[],
+            )
+        except Exception:
+            return CAPStatusResponse(
+                cap_mode="real",
+                real_cap_ready=False,
+                adapter_status="REAL_CAP_SDK_IMPORT_FAILED",
+                sdk_import_status="import_error",
+                service_id_status="present_unverified",
+                credential_status="present",
+                provider_agent_id=config.croo_provider_agent_id,
+                disclaimer=REAL_CAP_CONFIGURED_DISCLAIMER,
+                client_init_status="not_attempted",
+                readiness_reason="SDK import failed; details are intentionally sanitized.",
+                missing=[],
+            )
+
+        try:
+            sdk_config = croo_sdk.Config(
+                base_url=config.croo_api_url or "",
+                ws_url=config.croo_ws_url or "",
+            )
+            croo_sdk.AgentClient(sdk_config, os.getenv("CROO_SDK_KEY") or "")
+        except Exception:
+            return CAPStatusResponse(
+                cap_mode="real",
+                real_cap_ready=False,
+                adapter_status="REAL_CAP_CLIENT_INIT_FAILED",
+                sdk_import_status="ok",
+                service_id_status="present_unverified",
+                credential_status="present",
+                provider_agent_id=config.croo_provider_agent_id,
+                disclaimer=REAL_CAP_CONFIGURED_DISCLAIMER,
+                client_init_status="failed",
+                readiness_reason=(
+                    "SDK client initialization failed; details are intentionally "
+                    "sanitized."
+                ),
+                missing=[],
+            )
+
         return CAPStatusResponse(
             cap_mode="real",
             real_cap_ready=False,
-            adapter_status="REAL_CAP_CONFIG_PRESENT_PENDING_STEP_6_VERIFICATION",
-            sdk_import_status="not_loaded_in_step_5b",
-            service_id_status="present",
+            adapter_status="REAL_CAP_CLIENT_INITIALIZED_READINESS_UNVERIFIED",
+            sdk_import_status="ok",
+            service_id_status="present_unverified",
             credential_status="present",
             provider_agent_id=config.croo_provider_agent_id,
             disclaimer=REAL_CAP_CONFIGURED_DISCLAIMER,
+            client_init_status="ok",
+            readiness_reason=REAL_CAP_CLIENT_INITIALIZED_REASON,
             missing=[],
         )
 

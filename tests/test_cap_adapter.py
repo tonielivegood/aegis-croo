@@ -1,5 +1,6 @@
 from copy import deepcopy
 from pathlib import Path
+from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
@@ -47,15 +48,72 @@ REAL_PENDING_DISCLAIMER = (
     "Real CAP mode requested, but credentials or service configuration are "
     "missing. No real CAP action was performed."
 )
+STEP_6B_MINIMAL_REASON = (
+    "SDK client initialized, but provider/service readiness requires official "
+    "read-only verification or dashboard confirmation."
+)
 CAP_ENV_KEYS = [
     "CAP_MODE", "CROO_API_URL", "CROO_WS_URL", "CROO_SDK_KEY",
     "CROO_SERVICE_ID", "CROO_PROVIDER_AGENT_ID",
+]
+UNSAFE_SDK_METHODS = [
+    "negotiate_order",
+    "accept_negotiation",
+    "accept_negotiation_with_fund_address",
+    "reject_negotiation",
+    "pay_order",
+    "deliver_order",
+    "reject_order",
+    "upload_file",
+    "get_download_url",
 ]
 
 
 def clear_cap_env(monkeypatch) -> None:
     for key in CAP_ENV_KEYS:
         monkeypatch.delenv(key, raising=False)
+
+
+
+def set_real_cap_env(monkeypatch, sdk_key: str = "do-not-return-this-test-value") -> None:
+    monkeypatch.setenv("CAP_MODE", "real")
+    monkeypatch.setenv("CROO_API_URL", "https://cap.example.test")
+    monkeypatch.setenv("CROO_WS_URL", "wss://cap.example.test/ws")
+    monkeypatch.setenv("CROO_SDK_KEY", sdk_key)
+    monkeypatch.setenv("CROO_SERVICE_ID", "svc_test")
+    monkeypatch.setenv("CROO_PROVIDER_AGENT_ID", "aegis-risk-oracle")
+
+
+def install_fake_croo_sdk(monkeypatch, calls: list) -> None:
+    class FakeConfig:
+        def __init__(self, base_url: str, ws_url: str = "", rpc_url: str = "") -> None:
+            calls.append(("Config", base_url, ws_url, rpc_url))
+            self.base_url = base_url
+            self.ws_url = ws_url
+            self.rpc_url = rpc_url
+
+    class FakeAgentClient:
+        def __init__(self, config: FakeConfig, sdk_key: str) -> None:
+            calls.append(("AgentClient", config.base_url, config.ws_url, sdk_key))
+
+        def __getattr__(self, name: str):
+            if name in UNSAFE_SDK_METHODS:
+                def unsafe_method(*args, **kwargs):
+                    calls.append((name, args, kwargs))
+                    raise AssertionError(f"unsafe SDK method called: {name}")
+
+                return unsafe_method
+            raise AttributeError(name)
+
+    fake_module = SimpleNamespace(AgentClient=FakeAgentClient, Config=FakeConfig)
+
+    def fake_import_module(name: str):
+        if name == "croo":
+            calls.append(("import_module", name))
+            return fake_module
+        raise ModuleNotFoundError(name)
+
+    monkeypatch.setattr("src.aegis_croo.cap.adapter.import_module", fake_import_module)
 
 
 def post_cap_order(payload: dict) -> dict:
@@ -102,13 +160,75 @@ def test_cap_status_real_mode_with_missing_credentials(monkeypatch) -> None:
     assert body["disclaimer"] == REAL_PENDING_DISCLAIMER
 
 
+
+def test_cap_status_real_mode_missing_sdk_returns_false(monkeypatch) -> None:
+    clear_cap_env(monkeypatch)
+    set_real_cap_env(monkeypatch)
+
+    def fake_import_module(name: str):
+        if name == "croo":
+            raise ModuleNotFoundError(name)
+        raise AssertionError(f"unexpected import: {name}")
+
+    monkeypatch.setattr("src.aegis_croo.cap.adapter.import_module", fake_import_module)
+
+    response = client.get("/cap/status")
+    body = response.json()
+
+    assert response.status_code == 200
+    assert body["cap_mode"] == "real"
+    assert body["real_cap_ready"] is False
+    assert body["sdk_import_status"] == "missing_package"
+    assert body["client_init_status"] == "not_attempted"
+    assert body["adapter_status"] == "REAL_CAP_SDK_MISSING"
+    assert "do-not-return-this-test-value" not in response.text
+
+
+def test_cap_status_fake_sdk_init_success_is_not_real_ready(monkeypatch) -> None:
+    clear_cap_env(monkeypatch)
+    set_real_cap_env(monkeypatch)
+    calls = []
+    install_fake_croo_sdk(monkeypatch, calls)
+
+    response = client.get("/cap/status")
+    body = response.json()
+
+    assert response.status_code == 200
+    assert body["cap_mode"] == "real"
+    assert body["real_cap_ready"] is False
+    assert body["sdk_import_status"] == "ok"
+    assert body["client_init_status"] == "ok"
+    assert body["adapter_status"] == "REAL_CAP_CLIENT_INITIALIZED_READINESS_UNVERIFIED"
+    assert body["readiness_reason"] == STEP_6B_MINIMAL_REASON
+    assert body["service_id_status"] == "present_unverified"
+    assert body["credential_status"] == "present"
+    assert "do-not-return-this-test-value" not in response.text
+    assert ("import_module", "croo") in calls
+    assert any(call[0] == "AgentClient" for call in calls)
+    assert all(call[0] not in UNSAFE_SDK_METHODS for call in calls)
+
+
+def test_cap_status_fake_sdk_init_success_does_not_fake_cap_success(monkeypatch) -> None:
+    clear_cap_env(monkeypatch)
+    set_real_cap_env(monkeypatch)
+    calls = []
+    install_fake_croo_sdk(monkeypatch, calls)
+
+    response = client.get("/cap/status")
+    serialized = response.text.lower()
+
+    assert response.status_code == 200
+    assert response.json()["real_cap_ready"] is False
+    assert "payment" not in serialized
+    assert "escrow" not in serialized
+    assert "settlement" not in serialized
+    assert "provider/service readiness requires official read-only verification" in serialized
+    assert all(call[0] not in UNSAFE_SDK_METHODS for call in calls)
+
+
 def test_cap_status_does_not_expose_secret_values(monkeypatch) -> None:
     clear_cap_env(monkeypatch)
-    monkeypatch.setenv("CAP_MODE", "real")
-    monkeypatch.setenv("CROO_API_URL", "https://cap.example.test")
-    monkeypatch.setenv("CROO_WS_URL", "wss://cap.example.test/ws")
-    monkeypatch.setenv("CROO_SDK_KEY", "do-not-return-this-test-value")
-    monkeypatch.setenv("CROO_SERVICE_ID", "svc_test")
+    set_real_cap_env(monkeypatch)
 
     response = client.get("/cap/status")
     serialized = response.text
@@ -216,7 +336,7 @@ def test_cap_adapter_has_no_real_sdk_or_live_execution_path() -> None:
     ).lower()
 
     forbidden_terms = {
-        "croo-sdk", "import croo", "from croo", "private_key",
+        "import croo", "from croo", "private_key",
         "sign_transaction", "send_raw_transaction", "broadcast_transaction",
         "swap(", "wallet =", "live_trading", "execute_trade", "place_order",
         "send_transaction",

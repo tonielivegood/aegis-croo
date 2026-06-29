@@ -10,6 +10,18 @@ CAP_ADAPTER_DISCLAIMER = (
     "CAP adapter mock only. No real CROO SDK payment, escrow, settlement, "
     "reputation, or on-chain delivery."
 )
+MOCK_CAP_STATUS_DISCLAIMER = (
+    "Mock CAP adapter only. No real CROO SDK payment, escrow, settlement, "
+    "reputation, or on-chain delivery."
+)
+REAL_CAP_MISSING_DISCLAIMER = (
+    "Real CAP mode requested, but credentials or service configuration are "
+    "missing. No real CAP action was performed."
+)
+REAL_CAP_CONFIGURED_DISCLAIMER = (
+    "Real CAP configuration is present, but Step 6 provider verification has "
+    "not run. No real CAP action was performed."
+)
 CAP_LIFECYCLE = ["NEGOTIATE_MOCK", "LOCK_MOCK", "DELIVER_LOCAL", "CLEAR_MOCK"]
 REAL_CAP_PENDING_DETAIL = (
     "Real CROO/CAP integration is pending SDK credentials and Step 6 "
@@ -60,3 +72,15 @@ class CAPOrderResult(BaseModel):
         payload["cap_lifecycle"] = list(CAP_LIFECYCLE)
         payload["cap_disclaimer"] = CAP_ADAPTER_DISCLAIMER
         return cls.model_validate(payload)
+
+
+class CAPStatusResponse(BaseModel):
+    cap_mode: Literal["mock", "real"]
+    real_cap_ready: bool
+    adapter_status: str = Field(min_length=1)
+    sdk_import_status: str = Field(min_length=1)
+    service_id_status: str = Field(min_length=1)
+    credential_status: str = Field(min_length=1)
+    provider_agent_id: str = Field(min_length=1)
+    disclaimer: str = Field(min_length=1)
+    missing: list[str] | None = None

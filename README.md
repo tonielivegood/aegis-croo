@@ -84,11 +84,17 @@ python examples/order_flow_demo.py
 
 Orders and proofs are held only in memory and disappear when the API restarts. `Local mock ledger only. No real CAP payment, escrow, on-chain delivery, or settlement.`
 
-## CAP Adapter Boundary — Mock First
+## CAP Adapter Boundary â€” Mock First
 
 Step 5A exposes `POST /cap/order` as a local mock adapter boundary. It accepts a CAP-shaped order request, maps it into the existing local `/orders` flow, and returns CAP adapter metadata such as `cap_mode: "mock"`, `cap_adapter_status: "CAP_READY_LOCAL_MOCK"`, and the mock CAP lifecycle `NEGOTIATE_MOCK -> LOCK_MOCK -> DELIVER_LOCAL -> CLEAR_MOCK`.
 
 This adapter does not use the real CROO SDK yet. It does not perform real payment, escrow, settlement, reputation, or on-chain delivery. Real CROO provider verification is reserved for Step 6.
+
+## Real CAP readiness
+
+Step 5B adds configuration and status boundaries only. `GET /cap/status` reports whether the mock adapter is active or whether real CAP mode is missing required provider configuration. Local tests do not use real CROO credentials, do not require the CROO SDK, and do not run real CAP network calls.
+
+If real CROO credentials are used later, keep them outside the repo in the runtime environment. Do not commit `.env` files or secret values. Real payment, escrow, settlement, reputation, or on-chain delivery must not be claimed until Step 6 verifies them through the CROO Dashboard and SDK.
 
 ## Safety
 

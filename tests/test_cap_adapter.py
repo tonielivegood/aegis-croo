@@ -39,12 +39,92 @@ CAP_DISCLAIMER = (
     "CAP adapter mock only. No real CROO SDK payment, escrow, settlement, "
     "reputation, or on-chain delivery."
 )
+MOCK_STATUS_DISCLAIMER = (
+    "Mock CAP adapter only. No real CROO SDK payment, escrow, settlement, "
+    "reputation, or on-chain delivery."
+)
+REAL_PENDING_DISCLAIMER = (
+    "Real CAP mode requested, but credentials or service configuration are "
+    "missing. No real CAP action was performed."
+)
+CAP_ENV_KEYS = [
+    "CAP_MODE", "CROO_API_URL", "CROO_WS_URL", "CROO_SDK_KEY",
+    "CROO_SERVICE_ID", "CROO_PROVIDER_AGENT_ID",
+]
+
+
+def clear_cap_env(monkeypatch) -> None:
+    for key in CAP_ENV_KEYS:
+        monkeypatch.delenv(key, raising=False)
 
 
 def post_cap_order(payload: dict) -> dict:
     response = client.post("/cap/order", json=payload)
     assert response.status_code == 200
     return response.json()
+
+
+def test_cap_status_default_mock_mode(monkeypatch) -> None:
+    clear_cap_env(monkeypatch)
+
+    response = client.get("/cap/status")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "cap_mode": "mock",
+        "real_cap_ready": False,
+        "adapter_status": "MOCK_ONLY",
+        "sdk_import_status": "not_required_in_mock_mode",
+        "service_id_status": "missing_or_not_required",
+        "credential_status": "missing_or_not_required",
+        "provider_agent_id": "aegis-risk-oracle",
+        "disclaimer": MOCK_STATUS_DISCLAIMER,
+    }
+
+
+def test_cap_status_real_mode_with_missing_credentials(monkeypatch) -> None:
+    clear_cap_env(monkeypatch)
+    monkeypatch.setenv("CAP_MODE", "real")
+
+    response = client.get("/cap/status")
+    body = response.json()
+
+    assert response.status_code == 200
+    assert body["cap_mode"] == "real"
+    assert body["real_cap_ready"] is False
+    assert body["adapter_status"] == "REAL_CAP_PENDING_CREDENTIALS"
+    assert body["missing"] == [
+        "CROO_API_URL", "CROO_WS_URL", "CROO_SDK_KEY", "CROO_SERVICE_ID",
+    ]
+    assert body["credential_status"] == "missing"
+    assert body["service_id_status"] == "missing"
+    assert body["provider_agent_id"] == "aegis-risk-oracle"
+    assert body["disclaimer"] == REAL_PENDING_DISCLAIMER
+
+
+def test_cap_status_does_not_expose_secret_values(monkeypatch) -> None:
+    clear_cap_env(monkeypatch)
+    monkeypatch.setenv("CAP_MODE", "real")
+    monkeypatch.setenv("CROO_API_URL", "https://cap.example.test")
+    monkeypatch.setenv("CROO_WS_URL", "wss://cap.example.test/ws")
+    monkeypatch.setenv("CROO_SDK_KEY", "do-not-return-this-test-value")
+    monkeypatch.setenv("CROO_SERVICE_ID", "svc_test")
+
+    response = client.get("/cap/status")
+    serialized = response.text
+
+    assert response.status_code == 200
+    assert "do-not-return-this-test-value" not in serialized
+    assert response.json()["credential_status"] == "present"
+
+
+def test_cap_status_does_not_require_croo_sdk_in_local_tests(monkeypatch) -> None:
+    clear_cap_env(monkeypatch)
+
+    response = client.get("/cap/status")
+
+    assert response.status_code == 200
+    assert response.json()["sdk_import_status"] == "not_required_in_mock_mode"
 
 
 def test_cap_order_works_in_default_mock_mode() -> None:

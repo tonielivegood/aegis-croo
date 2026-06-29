@@ -2,11 +2,21 @@ from fastapi import APIRouter, HTTPException
 
 from apps.api.routes.orders import order_ledger
 from src.aegis_croo.cap.adapter import CAPAdapter, RealCAPIntegrationPendingError
-from src.aegis_croo.cap.models import CAPOrderRequest, CAPOrderResult, REAL_CAP_PENDING_DETAIL
+from src.aegis_croo.cap.models import (
+    CAPOrderRequest,
+    CAPOrderResult,
+    CAPStatusResponse,
+    REAL_CAP_PENDING_DETAIL,
+)
 
 
 router = APIRouter()
 cap_adapter = CAPAdapter(order_ledger)
+
+
+@router.get("/cap/status", response_model=CAPStatusResponse, response_model_exclude_none=True)
+def get_cap_status() -> CAPStatusResponse:
+    return cap_adapter.status()
 
 
 @router.post("/cap/order", response_model=CAPOrderResult)

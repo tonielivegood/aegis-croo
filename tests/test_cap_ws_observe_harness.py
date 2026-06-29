@@ -116,6 +116,7 @@ async def test_timeout_closes_fake_stream(monkeypatch) -> None:
     )
 
     assert result.status == "timed_out"
+    assert result.connected is True
     assert result.closed is True
     assert result.close_attempted is True
     assert result.local_only is True
@@ -183,10 +184,64 @@ async def test_connector_exception_is_sanitized_and_stream_still_closes(
     )
 
     assert result.status == "error"
+    assert result.connected is False
     assert result.closed is True
     assert result.error is not None
     assert "croo_sk_" not in result.error
     assert "exception-secret" not in result.error
+    assert stream.close_calls == 1
+
+
+@pytest.mark.anyio
+async def test_timeout_during_connect_is_not_reported_as_connected(
+    monkeypatch,
+) -> None:
+    monkeypatch.setenv("CAP_WS_OBSERVE_ONLY_ENABLED", "true")
+    monkeypatch.setenv("CAP_WS_OBSERVE_TIMEOUT_SECONDS", "0.01")
+    stream = FakeStream()
+    never_finishes = __import__("asyncio").Event()
+
+    async def connect(_stream) -> None:
+        await never_finishes.wait()
+
+    result = await ObserveOnlyWebSocketHarness.from_environment().run(
+        stream,
+        connect,
+    )
+
+    assert result.status == "timed_out"
+    assert result.connected is False
+    assert result.closed is True
+    assert stream.close_calls == 1
+
+
+@pytest.mark.anyio
+async def test_stream_error_aborts_and_closes_after_connect(monkeypatch) -> None:
+    monkeypatch.setenv("CAP_WS_OBSERVE_ONLY_ENABLED", "true")
+    monkeypatch.setenv("CAP_WS_OBSERVE_TIMEOUT_SECONDS", "0.05")
+    stream = FakeStream()
+    stream.runtime_error = None
+
+    def stream_error():
+        return stream.runtime_error
+
+    stream.err = stream_error
+
+    async def connect(_stream) -> None:
+        stream.runtime_error = RuntimeError(
+            "policy failure key=croo_sk_runtime-secret"
+        )
+
+    result = await ObserveOnlyWebSocketHarness.from_environment().run(
+        stream,
+        connect,
+    )
+
+    assert result.status == "error"
+    assert result.connected is True
+    assert result.closed is True
+    assert result.error is not None
+    assert "croo_sk_" not in result.error
     assert stream.close_calls == 1
 
 

@@ -18,7 +18,7 @@ Aegis has local SDK runtime initialization evidence and a CAP-ready adapter post
 |---|---|---|---|
 | Dashboard configured | Agent, Service, API key, schemas, price, SLA, and tags are configured in CROO Dashboard. | Needs sanitized dashboard evidence before being claimed beyond local env presence. | Partial only |
 | SDK client initialized | `croo-sdk` imports and `AgentClient` initializes with runtime config. | Verified in Step 6C. | Yes |
-| Agent online | WebSocket connected, heartbeat active, Agent visible and accepting orders. | Not verified. | No |
+| Agent online | WebSocket connected, heartbeat active, Agent visible and accepting orders. | One bounded five-second connection-only probe succeeded in Step 7C-C; persistent heartbeat, visibility, and accepting-orders status remain unverified. | Connection only |
 | Controlled provider behavior | Aegis provider guard validates service ID/name, schema, fund-transfer settings, and forbidden execution requests before any future accept path. | Step 7A guard, Step 7B adapter skeleton, and Step 7C-B observe-only harness are local, disabled, and disconnected from CROO/CAP runtime. | Local safety components only |
 | Real order lifecycle | Negotiation -> lock/pay/escrow -> deliver -> clear/settlement. | Not verified. | No |
 | On-chain delivery proof | Real CAP delivery records the deliverable hash on-chain. | Not verified. | No |
@@ -70,6 +70,6 @@ The planner always runs the Step 7A guard first. A valid risk-check payload can 
 
 Step 7C-A audited the installed SDK source and official package metadata without importing runtime code or opening a connection. The SDK connects immediately, auto-reconnects, places the SDK key in a WebSocket query parameter, and logs the full connection URL at INFO level. Its official provider example auto-accepts negotiations and auto-delivers paid orders.
 
-Step 7C-B now provides the fake-tested local observe-only gate, credential redaction, hard timeout, event-triggered abort, and bounded close behavior. It imports no CROO SDK runtime and opens no connection.
+Step 7C-C completed one explicitly approved five-second connection-only probe through the observe-only harness. Authentication and initial connection succeeded, no business event arrived, the stream closed, no mutating method ran, and `real_cap_ready=false` remained enforced.
 
-A real online test is still not authorized. Next review sanitized Dashboard evidence, confirm no duplicate key session or pending work, define and review the separate real-SDK adapter boundary, and request explicit approval for one bounded connection-only probe. See `docs/croo-websocket-provider-readiness-step7c-a.md`.
+This is connection-only evidence, not persistent heartbeat, accepting-orders, payment, delivery, settlement, or commercial lifecycle proof. Do not run another probe or a paid order without a separate reviewed step. See `docs/croo-websocket-observe-probe-step7c-c.md`.

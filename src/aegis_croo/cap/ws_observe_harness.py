@@ -68,6 +68,7 @@ class ObserveOnlyResult(BaseModel):
     local_only: Literal[True] = True
     real_cap_ready: Literal[False] = False
     close_attempted: Literal[True] = True
+    connected: bool
     closed: bool
     event: SanitizedEventSummary | None = None
     error: str | None = None
@@ -122,12 +123,13 @@ class ObserveOnlyWebSocketHarness:
         event: SanitizedEventSummary | None = None
         error: str | None = None
         connect_task: asyncio.Task[None] | None = None
+        connected = False
 
         try:
             stream.on_any(on_event)
             connect_task = asyncio.create_task(connect(stream))
             event = await asyncio.wait_for(
-                _wait_for_connection_or_event(connect_task, event_future),
+                _wait_for_connection_or_event(connect_task, event_future, stream),
                 timeout=self._timeout_seconds,
             )
             status = "event_aborted"
@@ -137,6 +139,12 @@ class ObserveOnlyWebSocketHarness:
             status = "error"
             error = redact_sensitive_text(str(exc))
         finally:
+            if (
+                connect_task
+                and connect_task.done()
+                and not connect_task.cancelled()
+            ):
+                connected = connect_task.exception() is None
             if connect_task and not connect_task.done():
                 connect_task.cancel()
                 await asyncio.gather(connect_task, return_exceptions=True)
@@ -154,6 +162,7 @@ class ObserveOnlyWebSocketHarness:
 
         return ObserveOnlyResult(
             status=status,
+            connected=connected,
             closed=closed,
             event=event,
             error=error,
@@ -163,15 +172,30 @@ class ObserveOnlyWebSocketHarness:
 async def _wait_for_connection_or_event(
     connect_task: asyncio.Task[None],
     event_future: asyncio.Future[SanitizedEventSummary],
+    stream: ObserveOnlyStream,
 ) -> SanitizedEventSummary:
-    done, _ = await asyncio.wait(
-        {connect_task, event_future},
-        return_when=asyncio.FIRST_COMPLETED,
-    )
-    if event_future in done:
-        return event_future.result()
-    await connect_task
-    return await event_future
+    connection_complete = False
+    while True:
+        waiting: set[asyncio.Future[Any]] = {event_future}
+        if not connection_complete:
+            waiting.add(connect_task)
+
+        done, _ = await asyncio.wait(
+            waiting,
+            timeout=0.01,
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+        if event_future in done:
+            return event_future.result()
+        if connect_task in done:
+            await connect_task
+            connection_complete = True
+
+        error_reader = getattr(stream, "err", None)
+        if callable(error_reader):
+            stream_error = error_reader()
+            if stream_error is not None:
+                raise RuntimeError(str(stream_error))
 
 
 def redact_sensitive_text(value: str) -> str:

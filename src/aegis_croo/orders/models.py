@@ -5,7 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from src.aegis_croo.schemas.common import Confidence, Decision
-from src.aegis_croo.schemas.risk import Proof, RiskCheckRequest, RiskFactor
+from src.aegis_croo.schemas.risk import RiskCheckRequest, RiskFactor
 
 
 CAP_DISCLAIMER = (
@@ -64,7 +64,7 @@ class LocalOrderResult(BaseModel):
     reasons: list[str]
     suggested_action: str
     proof_id: str = Field(min_length=1)
-    proof: Proof
+    proof: LocalDeliveryProof
     created_at: datetime
     completed_at: datetime
     cap_mode: Literal["local_mock"] = "local_mock"

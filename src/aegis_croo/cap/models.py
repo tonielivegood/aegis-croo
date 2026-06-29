@@ -19,12 +19,13 @@ REAL_CAP_MISSING_DISCLAIMER = (
     "missing. No real CAP action was performed."
 )
 REAL_CAP_CONFIGURED_DISCLAIMER = (
-    "Real CAP configuration is present, but Step 6 provider verification has "
-    "not run. No real CAP action was performed."
+    "Real CAP configuration is present, but Agent online WebSocket heartbeat, "
+    "controlled provider behavior, and real CAP lifecycle are not verified."
 )
 REAL_CAP_CLIENT_INITIALIZED_REASON = (
-    "SDK client initialized, but provider/service readiness requires official "
-    "read-only verification or dashboard confirmation."
+    "Dashboard service may be configured and SDK runtime initialization is "
+    "verified, but Agent online WebSocket heartbeat, controlled provider "
+    "behavior, and real CAP payment/escrow/delivery/settlement are not yet verified."
 )
 CAP_LIFECYCLE = ["NEGOTIATE_MOCK", "LOCK_MOCK", "DELIVER_LOCAL", "CLEAR_MOCK"]
 REAL_CAP_PENDING_DETAIL = (
@@ -89,4 +90,8 @@ class CAPStatusResponse(BaseModel):
     disclaimer: str = Field(min_length=1)
     client_init_status: str | None = None
     readiness_reason: str | None = None
+    agent_online_status: str | None = None
+    websocket_heartbeat_status: str | None = None
+    controlled_provider_status: str | None = None
+    real_order_lifecycle_status: str | None = None
     missing: list[str] | None = None

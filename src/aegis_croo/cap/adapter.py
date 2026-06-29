@@ -133,6 +133,10 @@ class CAPAdapter:
             disclaimer=REAL_CAP_CONFIGURED_DISCLAIMER,
             client_init_status="ok",
             readiness_reason=REAL_CAP_CLIENT_INITIALIZED_REASON,
+            agent_online_status="not_verified",
+            websocket_heartbeat_status="not_verified",
+            controlled_provider_status="not_built",
+            real_order_lifecycle_status="not_verified",
             missing=[],
         )
 

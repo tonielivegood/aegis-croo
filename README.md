@@ -8,7 +8,7 @@ It is not a trading bot. Aegis evaluates risk but has no wallet logic, private-k
 
 In CROO Agent Protocol (CAP) terms, Aegis Risk Oracle is the **Provider Agent** and Aegis Risk Check is its callable **Service**. The risk-check input is the **Requirements** schema, while the risk-check JSON response is the **Deliverable** schema. The A2A mock buyer is the **Requester Agent**; `buyer_agent_id` identifies that requester in this demo.
 
-The `proof` hashes are a local **Delivery Proof / Log Attestation** for the risk-check result. They are not on-chain proof. Real CAP integration is pending: this project does not yet invoke the CROO SDK, real payment, USDC escrow, settlement, reputation updates, or on-chain delivery.
+The `proof` hashes are a local **Delivery Proof / Log Attestation** for the risk-check result. They are not on-chain proof. Real CAP lifecycle integration is pending: this project does not yet create, negotiate, pay, deliver, clear, or settle real CAP orders, and it has not verified real payment, USDC escrow, reputation updates, or on-chain delivery.
 
 `EXECUTE` means only that the risk decision found the proposed action acceptable. `safe_to_execute` is risk advice, not transaction authorization; Aegis never executes or submits a transaction.
 
@@ -88,17 +88,27 @@ Orders and proofs are held only in memory and disappear when the API restarts. `
 
 Step 5A exposes `POST /cap/order` as a local mock adapter boundary. It accepts a CAP-shaped order request, maps it into the existing local `/orders` flow, and returns CAP adapter metadata such as `cap_mode: "mock"`, `cap_adapter_status: "CAP_READY_LOCAL_MOCK"`, and the mock CAP lifecycle `NEGOTIATE_MOCK -> LOCK_MOCK -> DELIVER_LOCAL -> CLEAR_MOCK`.
 
-This adapter does not use the real CROO SDK yet. It does not perform real payment, escrow, settlement, reputation, or on-chain delivery. Real CROO provider verification is reserved for Step 6.
+This adapter does not use the CROO SDK for real order flow. It does not perform real payment, escrow, settlement, reputation, or on-chain delivery. Real CROO provider behavior is reserved for a later guarded provider step.
 
 ## Real CAP readiness
 
-Step 5B adds configuration and status boundaries only. `GET /cap/status` reports whether the mock adapter is active or whether real CAP mode is missing required provider configuration. Local tests do not use real CROO credentials, do not require the CROO SDK, and do not run real CAP network calls.
+Step 5B adds configuration and status boundaries only. `GET /cap/status` reports whether the mock adapter is active or whether real CAP mode is missing required provider configuration. Local tests do not use real CROO credentials and do not run real CAP network calls.
 
-Step 6B-minimal adds a safe real-mode SDK readiness probe for `GET /cap/status`: when real-mode configuration is present, it can verify only that the CROO SDK import and `AgentClient` initialization path are available. It does not verify real provider readiness, create or deliver orders, perform payment, lock escrow, settle, clear, upload files, update reputation, or submit on-chain delivery. Because the verified CROO Python SDK contract does not expose an official provider/service lookup or auth/status method, `real_cap_ready` remains `false` until official read-only verification or dashboard confirmation is added.
+Step 6B-minimal and Step 6C verify only the SDK runtime layer: `croo-sdk` can import and `AgentClient` can initialize when real-mode runtime configuration is present. This does not prove CROO Dashboard setup, Agent Store online status, WebSocket heartbeat, accepting-orders status, controlled provider behavior, payment, escrow, delivery, clear, settlement, reputation, or on-chain proof.
 
-Step 6C ran a sanitized local real-mode `/cap/status` probe with `croo-sdk` 0.2.1 installed. The SDK import and `AgentClient` initialization succeeded, but provider/service readiness remained unverified, so `real_cap_ready` intentionally remained `false`. No real CAP payment, escrow, settlement, upload, delivery, reputation update, or on-chain action was tested or claimed.
+The correct model is layered:
 
-If real CROO credentials are used later, keep them outside the repo in the runtime environment. Do not commit `.env` files or secret values. Real payment, escrow, settlement, reputation, or on-chain delivery must not be claimed until Step 6 verifies them through the CROO Dashboard and SDK.
+- Dashboard: Agent, Service, API key, requirements schema, deliverable schema, price, SLA, and tags setup.
+- SDK: runtime/order lifecycle APIs and client initialization.
+- WebSocket heartbeat: Agent online, visible, and accepting-orders status.
+- Controlled provider guard: required before Aegis can safely accept or deliver any real order.
+- Real CAP lifecycle: negotiation -> lock/pay/escrow -> deliver -> clear/settlement, not yet verified.
+
+`real_cap_ready` intentionally remains `false`. Aegis must not claim it is live on CROO, online in the Agent Store, accepting real CAP orders, or verified for real payment, escrow, delivery, settlement, reputation, or on-chain proof.
+
+See [docs/aegis-cap-truth-table.md](docs/aegis-cap-truth-table.md) for the current CAP readiness truth table and forbidden-method boundary.
+
+If real CROO credentials are used later, keep them outside the repo in the runtime environment. Do not commit `.env` files or secret values. Real provider testing requires a reviewed controlled provider guard before any WebSocket/provider run.
 
 ## Safety
 

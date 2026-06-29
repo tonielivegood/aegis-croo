@@ -94,7 +94,7 @@ Verified from README and source:
 - `connect_websocket` raises `ValueError("croo: ws_url is required for WebSocket connection")` when `ws_url` is empty.
 - WebSocket auth uses the SDK key as a `key` query parameter when connecting.
 
-Step 6B provider readiness should not require WebSocket connection unless official docs later identify a read-only readiness check that specifically needs it.
+Step 6B-minimal did not connect WebSocket. A later provider step must treat WebSocket heartbeat as the Agent online, visible, and accepting-orders layer, and must not run it until a controlled provider guard is designed and explicitly approved.
 
 ### Safe Read-Only Methods Available
 
@@ -152,10 +152,11 @@ Safe Step 6B status exposure:
 - No official SDK method was found for direct service ID lookup.
 - No official SDK method was found for a read-only auth/status endpoint.
 - No official SDK method was found to verify that `CROO_SERVICE_ID` belongs to `CROO_PROVIDER_AGENT_ID` without using existing order data or a Dashboard/manual confirmation.
-- It is unknown whether the CROO Dashboard or a separate official API endpoint exposes a safe read-only service/provider verification path outside `AgentClient`.
+- CROO Dashboard is the official setup layer for Agent creation, Service registration, SDK/API key issuance, schemas, price, SLA, tags, and status monitoring.
+- SDK v0.2.1 does not expose a direct service/provider lookup method in `AgentClient`; that SDK limitation must not be described as proof that no official verification path exists.
 - It is unknown whether an empty successful `list_orders` response is intended by CROO to prove SDK-key validity for readiness purposes. It proves only that the call authenticated and returned, not that a target service is registered.
 
-Because of these unknowns, Step 6B must not mark `real_cap_ready=true` using SDK v0.2.1 alone unless provider and service identity are verified through an official safe read-only method or manual Dashboard evidence is explicitly accepted as the readiness source.
+Because of these boundaries, Step 6B must not mark `real_cap_ready=true` using SDK v0.2.1 initialization alone. Future readiness requires sanitized Dashboard evidence, WebSocket heartbeat verification, controlled provider behavior, and explicit approval before any real provider run.
 
 ## Forbidden Methods for Step 6B Readiness
 
@@ -207,17 +208,18 @@ Step 6B must not add wallet, private key, signing, swap, transaction constructio
    - Other `APIError` -> read-only check failed, exposing only safe category fields.
 10. Close the client with `await client.close()` if it was created.
 11. Provider/service identity verification:
-   - If a future official safe read-only method exists, use it to verify exact `CROO_PROVIDER_AGENT_ID` and `CROO_SERVICE_ID`.
-   - If only SDK v0.2.1 methods are available, keep `real_cap_ready=false` with provider/service identity unverified.
+   - Use sanitized Dashboard evidence for Agent/Service setup when SDK does not expose direct service lookup.
+   - Keep `real_cap_ready=false` until WebSocket heartbeat and controlled provider behavior are also verified.
 12. Set `real_cap_ready=true` only if all of the following are true:
    - `CAP_MODE=real`
    - `CROO_SDK_KEY` is present but never printed
    - `CROO_SERVICE_ID` is present
    - SDK import succeeds
    - `AgentClient` initializes successfully
-   - Safe read-only auth/status check succeeds
-   - Provider identity is verified
-   - Service identity is verified
+   - Safe read-only auth/status check succeeds, if such a check is explicitly approved
+   - Dashboard evidence verifies Agent and Service setup without exposing secrets
+   - WebSocket heartbeat verifies Agent online/visible/accepting-orders status
+   - Controlled provider guard is built and verified before accepting real orders
    - No forbidden method was called
 
 ## Conditions for `real_cap_ready=false`
@@ -232,7 +234,9 @@ Return false when any of these occur:
 - Read-only status/auth check failure.
 - Service ID mismatch.
 - Provider identity mismatch.
-- Service/provider identity cannot be verified from official safe read-only methods.
+- Dashboard Agent/Service setup evidence is missing or unverified.
+- Agent online WebSocket heartbeat is missing or unverified.
+- Controlled provider behavior is not built or not verified.
 - Any unsafe method would be required to prove readiness.
 
 ## Tests Needed for Step 6B

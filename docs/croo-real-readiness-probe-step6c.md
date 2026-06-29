@@ -43,9 +43,13 @@ Sanitized response:
   "service_id_status": "present_unverified",
   "credential_status": "present",
   "provider_agent_id": "aegis-risk-oracle",
-  "disclaimer": "Real CAP configuration is present, but Step 6 provider verification has not run. No real CAP action was performed.",
+  "disclaimer": "Real CAP configuration is present, but Agent online WebSocket heartbeat, controlled provider behavior, and real CAP lifecycle are not verified.",
   "client_init_status": "ok",
-  "readiness_reason": "SDK client initialized, but provider/service readiness requires official read-only verification or dashboard confirmation.",
+  "readiness_reason": "Dashboard service may be configured and SDK runtime initialization is verified, but Agent online WebSocket heartbeat, controlled provider behavior, and real CAP payment/escrow/delivery/settlement are not yet verified.",
+  "agent_online_status": "not_verified",
+  "websocket_heartbeat_status": "not_verified",
+  "controlled_provider_status": "not_built",
+  "real_order_lifecycle_status": "not_verified",
   "missing": []
 }
 ```
@@ -55,20 +59,25 @@ Sanitized response:
 - `cap_mode="real"` means the fresh API process inherited `CAP_MODE=real`.
 - `sdk_import_status="ok"` means the installed CROO SDK package imported.
 - `client_init_status="ok"` means `AgentClient` initialized with the configured API/WS URLs and SDK key.
-- `service_id_status="present_unverified"` means service configuration was present, but the service identity was not verified through an official safe read-only CROO/CAP method.
+- `service_id_status="present_unverified"` means service configuration was present in local runtime config, but Dashboard Service setup evidence was not documented in this probe.
 - `credential_status="present"` means a credential was present in the process environment. It does not expose or validate the secret value in this status.
-- `real_cap_ready=false` is the honest expected result because Step 6C did not prove provider/service readiness.
+- `agent_online_status="not_verified"` and `websocket_heartbeat_status="not_verified"` mean Step 6C did not connect a WebSocket heartbeat and did not prove Agent Store online or accepting-orders status.
+- `controlled_provider_status="not_built"` means Aegis has not built the guard required before accepting real orders.
+- `real_order_lifecycle_status="not_verified"` means negotiation -> lock/pay/escrow -> deliver -> clear/settlement has not been verified.
+- `real_cap_ready=false` is the honest expected result because Step 6C proved only SDK runtime initialization.
 
 ## What Step 6C Did Not Prove
 
 Step 6C did not verify:
 
-- Provider/service ownership or readiness through an official safe read-only CROO/CAP method.
+- CROO Dashboard setup evidence for Agent, Service, API key, schemas, price, SLA, or tags.
+- Agent online status through WebSocket heartbeat.
+- Agent Store visibility or accepting-orders status.
+- Controlled provider behavior for validating service/schema/fund-transfer requests before accept/deliver.
 - Real CAP payment.
 - Escrow locking.
-- Settlement or clearing.
+- Delivery, settlement, or clearing.
 - Reputation updates.
-- Upload or delivery.
 - On-chain delivery or transaction submission.
 
 ## Verification After Probe
@@ -91,9 +100,10 @@ Git status was clean after the probe before this documentation step.
 
 ## Next Step
 
-Step 6D should be plan-only unless explicitly approved otherwise:
+The next safe step is a controlled provider-guard design, not a real provider run:
 
-- Identify an official safe read-only provider/service verification path, or
-- Define what CROO Dashboard evidence is acceptable before allowing `real_cap_ready=true`.
+- Document acceptable sanitized CROO Dashboard evidence for Agent/Service/API key/schema/price/SLA/tags setup.
+- Design a disabled-by-default provider guard before any WebSocket heartbeat test.
+- Do not run official provider examples directly; they can auto-accept and auto-deliver.
 
-Until that evidence exists, `real_cap_ready=false` remains the correct and safe status.
+Until Dashboard evidence, WebSocket heartbeat verification, controlled provider behavior, and real lifecycle evidence exist, `real_cap_ready=false` remains the correct and safe status.

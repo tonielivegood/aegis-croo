@@ -49,8 +49,9 @@ REAL_PENDING_DISCLAIMER = (
     "missing. No real CAP action was performed."
 )
 STEP_6B_MINIMAL_REASON = (
-    "SDK client initialized, but provider/service readiness requires official "
-    "read-only verification or dashboard confirmation."
+    "Dashboard service may be configured and SDK runtime initialization is "
+    "verified, but Agent online WebSocket heartbeat, controlled provider "
+    "behavior, and real CAP payment/escrow/delivery/settlement are not yet verified."
 )
 CAP_ENV_KEYS = [
     "CAP_MODE", "CROO_API_URL", "CROO_WS_URL", "CROO_SDK_KEY",
@@ -67,6 +68,12 @@ UNSAFE_SDK_METHODS = [
     "upload_file",
     "get_download_url",
 ]
+UNVERIFIED_REAL_STATUS_FIELDS = {
+    "agent_online_status": "not_verified",
+    "websocket_heartbeat_status": "not_verified",
+    "controlled_provider_status": "not_built",
+    "real_order_lifecycle_status": "not_verified",
+}
 
 
 def clear_cap_env(monkeypatch) -> None:
@@ -200,6 +207,8 @@ def test_cap_status_fake_sdk_init_success_is_not_real_ready(monkeypatch) -> None
     assert body["client_init_status"] == "ok"
     assert body["adapter_status"] == "REAL_CAP_CLIENT_INITIALIZED_READINESS_UNVERIFIED"
     assert body["readiness_reason"] == STEP_6B_MINIMAL_REASON
+    for field, value in UNVERIFIED_REAL_STATUS_FIELDS.items():
+        assert body[field] == value
     assert body["service_id_status"] == "present_unverified"
     assert body["credential_status"] == "present"
     assert "do-not-return-this-test-value" not in response.text
@@ -219,10 +228,12 @@ def test_cap_status_fake_sdk_init_success_does_not_fake_cap_success(monkeypatch)
 
     assert response.status_code == 200
     assert response.json()["real_cap_ready"] is False
-    assert "payment" not in serialized
-    assert "escrow" not in serialized
-    assert "settlement" not in serialized
-    assert "provider/service readiness requires official read-only verification" in serialized
+    assert "agent online websocket heartbeat" in serialized
+    assert "controlled provider behavior" in serialized
+    assert "real cap payment/escrow/delivery/settlement" in serialized
+    assert "payment verified" not in serialized
+    assert "escrow verified" not in serialized
+    assert "settlement verified" not in serialized
     assert all(call[0] not in UNSAFE_SDK_METHODS for call in calls)
 
 

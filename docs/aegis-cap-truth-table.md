@@ -19,7 +19,7 @@ Aegis has local SDK runtime initialization evidence and a CAP-ready adapter post
 | Dashboard configured | Agent, Service, API key, schemas, price, SLA, and tags are configured in CROO Dashboard. | Needs sanitized dashboard evidence before being claimed beyond local env presence. | Partial only |
 | SDK client initialized | `croo-sdk` imports and `AgentClient` initializes with runtime config. | Verified in Step 6C. | Yes |
 | Agent online | WebSocket connected, heartbeat active, Agent visible and accepting orders. | Not verified. | No |
-| Controlled provider behavior | Aegis provider guard validates service ID/name, schema, fund-transfer settings, and forbidden execution requests before any future accept path. | Pure local guard scaffold implemented in Step 7A; disabled and disconnected from CROO/CAP runtime. | Local scaffold only |
+| Controlled provider behavior | Aegis provider guard validates service ID/name, schema, fund-transfer settings, and forbidden execution requests before any future accept path. | Step 7A guard and Step 7B adapter skeleton are pure local planning logic; both are disabled and disconnected from CROO/CAP runtime. | Local skeletons only |
 | Real order lifecycle | Negotiation -> lock/pay/escrow -> deliver -> clear/settlement. | Not verified. | No |
 | On-chain delivery proof | Real CAP delivery records the deliverable hash on-chain. | Not verified. | No |
 | Reputation/settlement | CAP Clear and any reputation update occur after delivery. | Not verified. | No |
@@ -60,6 +60,12 @@ The scaffold is disabled by disconnection: no listener calls it, no CROO SDK or 
 
 `CAP_MODE=mock` remains the default. `real_cap_ready=false` remains mandatory because online heartbeat, controlled provider integration, and the real negotiation -> lock/pay/escrow -> deliver -> clear/settlement lifecycle are unverified.
 
+## Step 7B Disabled Provider Adapter Skeleton
+
+Step 7B adds a local provider action planner gated by `CAP_REAL_PROVIDER_ENABLED=false` by default. Construction through environment configuration is refused unless the flag is explicitly enabled. Enabling it unlocks only local test planning; it does not start a listener, import the CROO SDK provider runtime, connect WebSocket, or call a CAP method.
+
+The planner always runs the Step 7A guard first. A valid risk-check payload can produce only the hypothetical actions `would_accept` and `would_deliver_after_paid`; unsafe and ambiguous payloads produce `would_reject` or `would_manual_review`. These labels are plans, not real order actions. Every plan records `local_only=true`, `real_action_performed=false`, and `real_cap_ready=false`.
+
 ## Safe Next Step
 
-Review and commit the local scaffold while keeping it disconnected. Any later provider design must add a separate disabled-by-default real-provider gate, preserve this guard before every accept path, and receive explicit approval before a WebSocket connection, provider example, or real CAP method is used.
+Review and commit Step 7B while keeping the skeleton disconnected. Do not add a listener, WebSocket connection, provider example, SDK runtime import, or real CAP lifecycle call without a separate reviewed and explicitly approved step.

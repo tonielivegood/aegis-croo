@@ -50,13 +50,13 @@ REAL_PENDING_DISCLAIMER = (
 )
 STEP_6B_MINIMAL_REASON = (
     "Dashboard service may be configured and SDK runtime initialization is "
-    "verified. A local provider guard scaffold exists but is disabled and disconnected; "
-    "Agent online WebSocket heartbeat and real CAP payment/escrow/delivery/settlement "
-    "are not verified."
+    "verified. Local provider guard and adapter skeletons exist but are disabled "
+    "and disconnected; Agent online WebSocket heartbeat and real CAP "
+    "payment/escrow/delivery/settlement are not verified."
 )
 CAP_ENV_KEYS = [
     "CAP_MODE", "CROO_API_URL", "CROO_WS_URL", "CROO_SDK_KEY",
-    "CROO_SERVICE_ID", "CROO_PROVIDER_AGENT_ID",
+    "CROO_SERVICE_ID", "CROO_PROVIDER_AGENT_ID", "CAP_REAL_PROVIDER_ENABLED",
 ]
 UNSAFE_SDK_METHODS = [
     "negotiate_order",
@@ -72,7 +72,7 @@ UNSAFE_SDK_METHODS = [
 UNVERIFIED_REAL_STATUS_FIELDS = {
     "agent_online_status": "not_verified",
     "websocket_heartbeat_status": "not_verified",
-    "controlled_provider_status": "local_guard_scaffolded_provider_disabled",
+    "controlled_provider_status": "local_guard_and_adapter_skeleton_disabled",
     "real_order_lifecycle_status": "not_verified",
 }
 

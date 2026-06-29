@@ -24,9 +24,9 @@ REAL_CAP_CONFIGURED_DISCLAIMER = (
 )
 REAL_CAP_CLIENT_INITIALIZED_REASON = (
     "Dashboard service may be configured and SDK runtime initialization is "
-    "verified. A local provider guard scaffold exists but is disabled and disconnected; "
-    "Agent online WebSocket heartbeat and real CAP payment/escrow/delivery/settlement "
-    "are not verified."
+    "verified. Local provider guard and adapter skeletons exist but are disabled "
+    "and disconnected; Agent online WebSocket heartbeat and real CAP "
+    "payment/escrow/delivery/settlement are not verified."
 )
 CAP_LIFECYCLE = ["NEGOTIATE_MOCK", "LOCK_MOCK", "DELIVER_LOCAL", "CLEAR_MOCK"]
 REAL_CAP_PENDING_DETAIL = (

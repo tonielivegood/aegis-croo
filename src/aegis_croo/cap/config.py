@@ -5,6 +5,7 @@ from typing import Literal
 
 CAPMode = Literal["mock", "real"]
 CAP_MODE: CAPMode = "mock"
+CAP_REAL_PROVIDER_ENABLED = False
 DEFAULT_PROVIDER_AGENT_ID = "aegis-risk-oracle"
 
 
@@ -13,6 +14,14 @@ def configured_cap_mode() -> CAPMode:
     if mode == "real":
         return "real"
     return "mock"
+
+
+def configured_real_provider_enabled() -> bool:
+    value = os.getenv(
+        "CAP_REAL_PROVIDER_ENABLED",
+        str(CAP_REAL_PROVIDER_ENABLED),
+    )
+    return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 @dataclass(frozen=True)

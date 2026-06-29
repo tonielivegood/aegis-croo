@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from apps.api.routes.a2a import router as a2a_router
+from apps.api.routes.cap import router as cap_router
 from apps.api.routes.health import router as health_router
 from apps.api.routes.orders import router as orders_router
 from apps.api.routes.risk import router as risk_router
@@ -12,3 +13,4 @@ app.include_router(health_router)
 app.include_router(risk_router)
 app.include_router(a2a_router)
 app.include_router(orders_router)
+app.include_router(cap_router)

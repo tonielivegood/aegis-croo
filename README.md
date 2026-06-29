@@ -84,6 +84,12 @@ python examples/order_flow_demo.py
 
 Orders and proofs are held only in memory and disappear when the API restarts. `Local mock ledger only. No real CAP payment, escrow, on-chain delivery, or settlement.`
 
+## CAP Adapter Boundary — Mock First
+
+Step 5A exposes `POST /cap/order` as a local mock adapter boundary. It accepts a CAP-shaped order request, maps it into the existing local `/orders` flow, and returns CAP adapter metadata such as `cap_mode: "mock"`, `cap_adapter_status: "CAP_READY_LOCAL_MOCK"`, and the mock CAP lifecycle `NEGOTIATE_MOCK -> LOCK_MOCK -> DELIVER_LOCAL -> CLEAR_MOCK`.
+
+This adapter does not use the real CROO SDK yet. It does not perform real payment, escrow, settlement, reputation, or on-chain delivery. Real CROO provider verification is reserved for Step 6.
+
 ## Safety
 
 This project defaults to dry-run mock data. It contains no live trading, private keys, wallet runtime state, signing, swaps, transaction construction, or transaction broadcasting. Aegis is only a pre-trade risk oracle and callable risk-check Service.

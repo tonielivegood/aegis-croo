@@ -75,6 +75,8 @@ def test_safe_small_buy_returns_execute() -> None:
     assert body["safe_to_execute"] is True
     assert body["market_regime"] == "safe_small_buy"
     assert body["risk_factors"] == []
+    assert "risk decision" in body["suggested_action"].lower()
+    assert "executor" not in body["suggested_action"].lower()
 
 
 def test_missing_important_market_data_returns_wait() -> None:

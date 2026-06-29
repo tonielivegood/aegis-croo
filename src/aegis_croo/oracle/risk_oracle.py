@@ -121,7 +121,10 @@ def _suggested_action(decision: Decision) -> str:
         return "BLOCK this proposed action and reassess the flagged risk evidence."
     if decision is Decision.WAIT:
         return "WAIT for stronger or more complete evidence before proceeding."
-    return "EXECUTE only through the caller's separately controlled executor."
+    return (
+        "EXECUTE means the risk decision is acceptable; Aegis performs no "
+        "transaction or execution."
+    )
 
 
 def assess_risk(request: RiskCheckRequest) -> RiskCheckResponse:

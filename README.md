@@ -1,8 +1,16 @@
 # Aegis Risk Oracle CROO
 
-Aegis Risk Oracle is a callable, chain-agnostic pre-trade risk oracle for CROO Agent Commerce. An agent submits its intended action and current market signals before execution; Aegis returns `BLOCK`, `WAIT`, or `EXECUTE`, along with a deterministic risk score and proof hashes.
+Aegis Risk Oracle is a callable, chain-agnostic pre-trade risk oracle for CROO Agent Commerce. As a callable risk-check Service, it evaluates a proposed action before any separately controlled action occurs and returns `BLOCK`, `WAIT`, or `EXECUTE`, along with a deterministic risk score and proof hashes.
 
-It is not a trading bot. Aegis evaluates a proposed action but has no wallet logic, private-key handling, transaction construction, swap endpoint, or broadcast path. Step 1 uses BNB on BSC only as a deterministic demo fixture; the request and oracle boundaries are designed for future provider coverage across BSC, Ethereum, Base, Arbitrum, Polygon, and other chains.
+It is not a trading bot. Aegis evaluates risk but has no wallet logic, private-key handling, signing, transaction construction, swap endpoint, or broadcast path. BNB on BSC is only a deterministic demo fixture; the request and oracle boundaries remain chain-agnostic for future provider coverage.
+
+## CROO/CAP terminology alignment
+
+In CROO Agent Protocol (CAP) terms, Aegis Risk Oracle is the **Provider Agent** and Aegis Risk Check is its callable **Service**. The risk-check input is the **Requirements** schema, while the risk-check JSON response is the **Deliverable** schema. The A2A mock buyer is the **Requester Agent**; `buyer_agent_id` identifies that requester in this demo.
+
+The `proof` hashes are a local **Delivery Proof / Log Attestation** for the risk-check result. They are not on-chain proof. Real CAP integration is pending: this project does not yet invoke the `Negotiate -> Lock -> Deliver -> Clear` lifecycle, CROO SDK, payment, USDC escrow, settlement, reputation updates, or on-chain delivery.
+
+`EXECUTE` means only that the risk decision found the proposed action acceptable. `safe_to_execute` is risk advice, not transaction authorization; Aegis never executes or submits a transaction.
 
 ## Quickstart
 
@@ -50,16 +58,16 @@ Example request:
 
 The response contains `decision`, `risk_score`, `confidence`, `market_regime`, `safe_to_execute`, `risk_factors`, `reasons`, `suggested_action`, and a `proof` object with request, response, and policy hashes/version data. Each explainable risk factor contains a guard `name`, `severity`, `score_impact`, and deterministic `evidence`.
 
-## A2A mock buyer demo
+## A2A mock requester demo
 
-With the API running, call the simulation-only buyer agent:
+With the API running, call the simulation-only Requester Agent:
 
 ```powershell
 python examples/mock_buyer_agent_demo.py
 ```
 
-The demo always asks Aegis first and only reports `REFUSED`, `DELAYED`, or `SIMULATED_EXECUTION_ONLY`; it never submits a trade.
+The mock Requester Agent always asks the Aegis Provider Agent first. It maps `BLOCK` to `REFUSED`, `WAIT` to `DELAYED`, and `EXECUTE` to `SIMULATED_EXECUTION_ONLY`; it never submits a trade.
 
 ## Safety
 
-This project defaults to dry-run mock data. It contains no live trading, no private keys, no wallet runtime state, and no transaction broadcasting. An `EXECUTE` response is advice to a separately controlled caller; Aegis itself cannot execute or broadcast anything.
+This project defaults to dry-run mock data. It contains no live trading, private keys, wallet runtime state, signing, swaps, transaction construction, or transaction broadcasting. Aegis is only a pre-trade risk oracle and callable risk-check Service.

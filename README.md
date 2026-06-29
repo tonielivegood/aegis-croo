@@ -96,6 +96,8 @@ Step 5B adds configuration and status boundaries only. `GET /cap/status` reports
 
 Step 6B-minimal adds a safe real-mode SDK readiness probe for `GET /cap/status`: when real-mode configuration is present, it can verify only that the CROO SDK import and `AgentClient` initialization path are available. It does not verify real provider readiness, create or deliver orders, perform payment, lock escrow, settle, clear, upload files, update reputation, or submit on-chain delivery. Because the verified CROO Python SDK contract does not expose an official provider/service lookup or auth/status method, `real_cap_ready` remains `false` until official read-only verification or dashboard confirmation is added.
 
+Step 6C ran a sanitized local real-mode `/cap/status` probe with `croo-sdk` 0.2.1 installed. The SDK import and `AgentClient` initialization succeeded, but provider/service readiness remained unverified, so `real_cap_ready` intentionally remained `false`. No real CAP payment, escrow, settlement, upload, delivery, reputation update, or on-chain action was tested or claimed.
+
 If real CROO credentials are used later, keep them outside the repo in the runtime environment. Do not commit `.env` files or secret values. Real payment, escrow, settlement, reputation, or on-chain delivery must not be claimed until Step 6 verifies them through the CROO Dashboard and SDK.
 
 ## Safety

@@ -135,21 +135,20 @@ Before requesting approval, record sanitized evidence that:
 
 ## Required Kill Switches
 
-The future wrapper must default to:
+The implemented local harness defaults to:
 
 ```text
 CAP_MODE=mock
 CAP_REAL_PROVIDER_ENABLED=false
-CAP_WS_READINESS_ENABLED=false
-CAP_WS_OBSERVE_ONLY=true
-CAP_WS_ABORT_ON_EVENT=true
-CAP_WS_MAX_EVENTS=0
-CAP_WS_MAX_SECONDS=45
-CAP_WS_DASHBOARD_EVIDENCE_CONFIRMED=false
+CAP_WS_OBSERVE_ONLY_ENABLED=false
+CAP_WS_OBSERVE_TIMEOUT_SECONDS=5.0
 ```
 
-These proposed settings must be fake-SDK tested before real use. Enabling the
-readiness gate must not enable the Step 7B planner or change readiness.
+Every observed event aborts unconditionally; there is no permissive event mode.
+These settings are fake-only in Step 7C-B. Enabling the observe-only gate must
+not enable the Step 7B planner or change `real_cap_ready`. Dashboard evidence
+and a separate real-SDK adapter remain prerequisites for any approved
+connection attempt.
 
 The wrapper must use one process without reload, install log redaction before
 client construction, register no mutating callback, enforce a wall-clock
@@ -198,3 +197,30 @@ A real Step 7C online test is **not safe to attempt next**. First implement and
 fake-test the observe-only controller, log redaction, and kill switches, then
 review Dashboard evidence. A real connection requires separate explicit
 approval after those prerequisites pass.
+
+## Step 7C-B Local Harness Status
+
+Step 7C-B implements the first prerequisite as a fake-only, dependency-injected
+local harness. It adds:
+
+- `CAP_WS_OBSERVE_ONLY_ENABLED=false` by default.
+- `CAP_WS_OBSERVE_TIMEOUT_SECONDS=5.0` with bounded parsing.
+- SDK-key, credential-query, sensitive-header, and credential-bearing
+  WebSocket URL redaction.
+- Sanitized event summaries containing event type and ID-presence booleans
+  only.
+- Immediate abort planning for every observed event.
+- Hard timeout, connector cancellation, and bounded close in all enabled runs.
+- Fake-stream and AST tests proving no SDK, network, WebSocket, or CAP
+  mutating call is present.
+
+The harness accepts an injected stream and connect coroutine. It does not import
+`croo`, create an SDK client, open a socket, or provide a real provider
+listener. Enabling it only permits a caller-supplied local test dependency to
+run. It does not enable `CAP_REAL_PROVIDER_ENABLED`, change `CAP_MODE`, or
+set `real_cap_ready=true`.
+
+Step 7C-B does not make a real connection safe by itself. Sanitized Dashboard
+evidence, duplicate-session and pending-order checks, a reviewed real-SDK
+adapter boundary, and separate explicit approval are still required before a
+bounded online probe.

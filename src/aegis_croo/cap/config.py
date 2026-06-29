@@ -6,6 +6,8 @@ from typing import Literal
 CAPMode = Literal["mock", "real"]
 CAP_MODE: CAPMode = "mock"
 CAP_REAL_PROVIDER_ENABLED = False
+CAP_WS_OBSERVE_ONLY_ENABLED = False
+CAP_WS_OBSERVE_TIMEOUT_SECONDS = 5.0
 DEFAULT_PROVIDER_AGENT_ID = "aegis-risk-oracle"
 
 
@@ -22,6 +24,28 @@ def configured_real_provider_enabled() -> bool:
         str(CAP_REAL_PROVIDER_ENABLED),
     )
     return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def configured_ws_observe_enabled() -> bool:
+    value = os.getenv(
+        "CAP_WS_OBSERVE_ONLY_ENABLED",
+        str(CAP_WS_OBSERVE_ONLY_ENABLED),
+    )
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def configured_ws_observe_timeout_seconds() -> float:
+    raw_value = os.getenv(
+        "CAP_WS_OBSERVE_TIMEOUT_SECONDS",
+        str(CAP_WS_OBSERVE_TIMEOUT_SECONDS),
+    )
+    try:
+        value = float(raw_value)
+    except ValueError:
+        return CAP_WS_OBSERVE_TIMEOUT_SECONDS
+    if 0 < value <= 60:
+        return value
+    return CAP_WS_OBSERVE_TIMEOUT_SECONDS
 
 
 @dataclass(frozen=True)

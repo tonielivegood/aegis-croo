@@ -8,6 +8,14 @@ CAP_MODE: CAPMode = "mock"
 CAP_REAL_PROVIDER_ENABLED = False
 CAP_WS_OBSERVE_ONLY_ENABLED = False
 CAP_WS_OBSERVE_TIMEOUT_SECONDS = 5.0
+CAP_CONTROLLED_PROVIDER_RUNTIME_ENABLED = False
+CAP_PROVIDER_ACCEPT_ENABLED = False
+CAP_PROVIDER_REJECT_ENABLED = False
+CAP_PROVIDER_PAID_ORDER_HANDLING_ENABLED = False
+CAP_PROVIDER_DELIVER_ENABLED = False
+CAP_PROVIDER_RUNTIME_TIMEOUT_SECONDS = 5.0
+CAP_PROVIDER_RUNTIME_CLOSE_TIMEOUT_SECONDS = 1.0
+CAP_PROVIDER_RUNTIME_MAX_EVENTS = 2
 DEFAULT_PROVIDER_AGENT_ID = "aegis-risk-oracle"
 
 
@@ -47,6 +55,72 @@ def configured_ws_observe_timeout_seconds() -> float:
         return value
     return CAP_WS_OBSERVE_TIMEOUT_SECONDS
 
+
+def _configured_bool(name: str, default: bool) -> bool:
+    return os.getenv(name, str(default)).strip().lower() in {
+        "1", "true", "yes", "on"
+    }
+
+
+def _configured_bounded_float(name: str, default: float) -> float:
+    try:
+        value = float(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+    return value if 0 < value <= 60 else default
+
+
+def _configured_bounded_int(name: str, default: int) -> int:
+    try:
+        value = int(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+    return value if 0 < value <= 60 else default
+
+
+@dataclass(frozen=True)
+class ControlledProviderRuntimeConfig:
+    runtime_enabled: bool
+    accept_enabled: bool
+    reject_enabled: bool
+    paid_order_handling_enabled: bool
+    deliver_enabled: bool
+    timeout_seconds: float
+    close_timeout_seconds: float
+    max_events: int
+
+
+def load_controlled_provider_runtime_config() -> ControlledProviderRuntimeConfig:
+    return ControlledProviderRuntimeConfig(
+        runtime_enabled=_configured_bool(
+            "CAP_CONTROLLED_PROVIDER_RUNTIME_ENABLED",
+            CAP_CONTROLLED_PROVIDER_RUNTIME_ENABLED,
+        ),
+        accept_enabled=_configured_bool(
+            "CAP_PROVIDER_ACCEPT_ENABLED", CAP_PROVIDER_ACCEPT_ENABLED
+        ),
+        reject_enabled=_configured_bool(
+            "CAP_PROVIDER_REJECT_ENABLED", CAP_PROVIDER_REJECT_ENABLED
+        ),
+        paid_order_handling_enabled=_configured_bool(
+            "CAP_PROVIDER_PAID_ORDER_HANDLING_ENABLED",
+            CAP_PROVIDER_PAID_ORDER_HANDLING_ENABLED,
+        ),
+        deliver_enabled=_configured_bool(
+            "CAP_PROVIDER_DELIVER_ENABLED", CAP_PROVIDER_DELIVER_ENABLED
+        ),
+        timeout_seconds=_configured_bounded_float(
+            "CAP_PROVIDER_RUNTIME_TIMEOUT_SECONDS",
+            CAP_PROVIDER_RUNTIME_TIMEOUT_SECONDS,
+        ),
+        close_timeout_seconds=_configured_bounded_float(
+            "CAP_PROVIDER_RUNTIME_CLOSE_TIMEOUT_SECONDS",
+            CAP_PROVIDER_RUNTIME_CLOSE_TIMEOUT_SECONDS,
+        ),
+        max_events=_configured_bounded_int(
+            "CAP_PROVIDER_RUNTIME_MAX_EVENTS", CAP_PROVIDER_RUNTIME_MAX_EVENTS
+        ),
+    )
 
 @dataclass(frozen=True)
 class CAPProviderConfig:

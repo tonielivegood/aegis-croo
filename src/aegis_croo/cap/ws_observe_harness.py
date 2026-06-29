@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import re
 from collections.abc import Awaitable, Callable, Mapping
 from typing import Any, Literal, Protocol
 
@@ -11,30 +10,13 @@ from src.aegis_croo.cap.config import (
     configured_ws_observe_enabled,
     configured_ws_observe_timeout_seconds,
 )
+from src.aegis_croo.cap.ws_safety import (
+    bounded_close,
+    redact_headers,
+    redact_sensitive_text,
+)
 
 
-REDACTED = "[REDACTED]"
-REDACTED_WEBSOCKET_URL = "[REDACTED_WEBSOCKET_URL]"
-_CROO_KEY_PATTERN = re.compile(r"croo_sk_[a-z0-9._-]+", re.IGNORECASE)
-_CREDENTIAL_WS_URL_PATTERN = re.compile(
-    r"\bwss?://[^\s\"']*(?:\?|@)[^\s\"']*",
-    re.IGNORECASE,
-)
-_CREDENTIAL_PARAMETER_PATTERN = re.compile(
-    r"(\b(?:key|sdk[_-]?key|api[_-]?key|token)\s*=\s*)[^\s&#,;]+",
-    re.IGNORECASE,
-)
-_CREDENTIAL_HEADER_PATTERN = re.compile(
-    r"(\b(?:x-sdk-key|authorization|proxy-authorization)\b\s*[:=]\s*)"
-    r"[^\r\n,;]+",
-    re.IGNORECASE,
-)
-_SENSITIVE_HEADER_NAMES = {
-    "authorization",
-    "proxy-authorization",
-    "x-api-key",
-    "x-sdk-key",
-}
 _KNOWN_EVENT_TYPES = {
     "order_negotiation_created",
     "order_negotiation_rejected",
@@ -149,16 +131,13 @@ class ObserveOnlyWebSocketHarness:
                 connect_task.cancel()
                 await asyncio.gather(connect_task, return_exceptions=True)
 
-        closed = False
-        try:
-            await asyncio.wait_for(
-                stream.close(),
-                timeout=self._close_timeout_seconds,
-            )
-            closed = True
-        except Exception as exc:
+        closed, close_error = await bounded_close(
+            stream,
+            timeout_seconds=self._close_timeout_seconds,
+        )
+        if not closed:
             status = "close_failed"
-            error = redact_sensitive_text(str(exc))
+            error = close_error
 
         return ObserveOnlyResult(
             status=status,
@@ -196,29 +175,6 @@ async def _wait_for_connection_or_event(
             stream_error = error_reader()
             if stream_error is not None:
                 raise RuntimeError(str(stream_error))
-
-
-def redact_sensitive_text(value: str) -> str:
-    redacted = _CREDENTIAL_WS_URL_PATTERN.sub(REDACTED_WEBSOCKET_URL, value)
-    redacted = _CREDENTIAL_HEADER_PATTERN.sub(
-        lambda match: f"{match.group(1)}{REDACTED}",
-        redacted,
-    )
-    redacted = _CREDENTIAL_PARAMETER_PATTERN.sub(
-        lambda match: f"{match.group(1)}{REDACTED}",
-        redacted,
-    )
-    return _CROO_KEY_PATTERN.sub(REDACTED, redacted)
-
-
-def redact_headers(headers: Mapping[str, Any]) -> dict[str, str]:
-    result: dict[str, str] = {}
-    for name, value in headers.items():
-        if name.casefold() in _SENSITIVE_HEADER_NAMES:
-            result[name] = REDACTED
-        else:
-            result[name] = redact_sensitive_text(str(value))
-    return result
 
 
 def _sanitize_event(event: Any) -> SanitizedEventSummary:

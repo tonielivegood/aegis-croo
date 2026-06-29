@@ -57,10 +57,10 @@ class CAPProviderAdapterSkeleton:
 
     def plan(self, payload: dict[str, Any]) -> CAPProviderActionPlan:
         guard_result = evaluate_cap_provider_guard(payload)
-        return _plan_from_guard_result(guard_result)
+        return plan_from_guard_result(guard_result)
 
 
-def _plan_from_guard_result(
+def plan_from_guard_result(
     guard_result: CAPProviderGuardResult,
 ) -> CAPProviderActionPlan:
     actions_by_decision: dict[GuardDecision, list[ProviderPlannedAction]] = {

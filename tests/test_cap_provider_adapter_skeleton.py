@@ -7,7 +7,9 @@ from src.aegis_croo.cap.config import configured_real_provider_enabled
 from src.aegis_croo.cap.provider_adapter import (
     CAPProviderAdapterDisabledError,
     CAPProviderAdapterSkeleton,
+    plan_from_guard_result,
 )
+from src.aegis_croo.cap.provider_guard import CAPProviderGuardResult
 
 
 VALID_PAYLOAD = {
@@ -130,3 +132,18 @@ def test_provider_adapter_skeleton_has_no_runtime_or_mutating_calls() -> None:
 
     assert forbidden_imports.isdisjoint(imported_roots)
     assert forbidden_calls.isdisjoint(called_names)
+
+
+def test_public_planner_consumes_an_existing_guard_result() -> None:
+    guard_result = CAPProviderGuardResult(
+        decision="reject",
+        safe_to_accept=False,
+        reason_codes=["wrong_service_id"],
+        reasons=["Wrong service."],
+    )
+
+    plan = plan_from_guard_result(guard_result)
+
+    assert plan.guard_decision == "reject"
+    assert plan.planned_actions == ["would_reject"]
+    assert plan.reason_codes == ["wrong_service_id"]

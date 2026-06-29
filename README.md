@@ -50,6 +50,16 @@ Example request:
 
 The response contains `decision`, `risk_score`, `confidence`, `market_regime`, `safe_to_execute`, `risk_factors`, `reasons`, `suggested_action`, and a `proof` object with request, response, and policy hashes/version data. Each explainable risk factor contains a guard `name`, `severity`, `score_impact`, and deterministic `evidence`.
 
+## A2A mock buyer demo
+
+With the API running, call the simulation-only buyer agent:
+
+```powershell
+python examples/mock_buyer_agent_demo.py
+```
+
+The demo always asks Aegis first and only reports `REFUSED`, `DELAYED`, or `SIMULATED_EXECUTION_ONLY`; it never submits a trade.
+
 ## Safety
 
 This project defaults to dry-run mock data. It contains no live trading, no private keys, no wallet runtime state, and no transaction broadcasting. An `EXECUTE` response is advice to a separately controlled caller; Aegis itself cannot execute or broadcast anything.

@@ -1,0 +1,12 @@
+{
+  "token": "BNB",
+  "chain": "bsc",
+  "intended_action": "buy",
+  "size_usd": 100,
+  "market_signal": {
+    "price_change_24h": -8.0,
+    "volume_change_24h": -10.0,
+    "liquidity_usd": 50000,
+    "volatility_24h": 9.0
+  }
+}

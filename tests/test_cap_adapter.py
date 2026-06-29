@@ -50,8 +50,9 @@ REAL_PENDING_DISCLAIMER = (
 )
 STEP_6B_MINIMAL_REASON = (
     "Dashboard service may be configured and SDK runtime initialization is "
-    "verified, but Agent online WebSocket heartbeat, controlled provider "
-    "behavior, and real CAP payment/escrow/delivery/settlement are not yet verified."
+    "verified. A local provider guard scaffold exists but is disabled and disconnected; "
+    "Agent online WebSocket heartbeat and real CAP payment/escrow/delivery/settlement "
+    "are not verified."
 )
 CAP_ENV_KEYS = [
     "CAP_MODE", "CROO_API_URL", "CROO_WS_URL", "CROO_SDK_KEY",
@@ -71,7 +72,7 @@ UNSAFE_SDK_METHODS = [
 UNVERIFIED_REAL_STATUS_FIELDS = {
     "agent_online_status": "not_verified",
     "websocket_heartbeat_status": "not_verified",
-    "controlled_provider_status": "not_built",
+    "controlled_provider_status": "local_guard_scaffolded_provider_disabled",
     "real_order_lifecycle_status": "not_verified",
 }
 
@@ -344,6 +345,7 @@ def test_cap_adapter_has_no_real_sdk_or_live_execution_path() -> None:
         path.read_text(encoding="utf-8")
         for root in scanned_roots
         for path in root.rglob("*.py")
+        if path.name != "provider_guard.py"
     ).lower()
 
     forbidden_terms = {

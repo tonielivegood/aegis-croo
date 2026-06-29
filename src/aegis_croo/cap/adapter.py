@@ -135,7 +135,7 @@ class CAPAdapter:
             readiness_reason=REAL_CAP_CLIENT_INITIALIZED_REASON,
             agent_online_status="not_verified",
             websocket_heartbeat_status="not_verified",
-            controlled_provider_status="not_built",
+            controlled_provider_status="local_guard_scaffolded_provider_disabled",
             real_order_lifecycle_status="not_verified",
             missing=[],
         )

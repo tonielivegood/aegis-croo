@@ -19,7 +19,7 @@ Aegis has local SDK runtime initialization evidence and a CAP-ready adapter post
 | Dashboard configured | Agent, Service, API key, schemas, price, SLA, and tags are configured in CROO Dashboard. | Needs sanitized dashboard evidence before being claimed beyond local env presence. | Partial only |
 | SDK client initialized | `croo-sdk` imports and `AgentClient` initializes with runtime config. | Verified in Step 6C. | Yes |
 | Agent online | WebSocket connected, heartbeat active, Agent visible and accepting orders. | Not verified. | No |
-| Controlled provider behavior | Aegis provider guard validates service ID/name, schema, fund-transfer settings, and forbidden execution requests before accept/deliver. | Not built. | No |
+| Controlled provider behavior | Aegis provider guard validates service ID/name, schema, fund-transfer settings, and forbidden execution requests before any future accept path. | Pure local guard scaffold implemented in Step 7A; disabled and disconnected from CROO/CAP runtime. | Local scaffold only |
 | Real order lifecycle | Negotiation -> lock/pay/escrow -> deliver -> clear/settlement. | Not verified. | No |
 | On-chain delivery proof | Real CAP delivery records the deliverable hash on-chain. | Not verified. | No |
 | Reputation/settlement | CAP Clear and any reputation update occur after delivery. | Not verified. | No |
@@ -52,8 +52,14 @@ Current readiness checks must not call:
 
 They must also not settle, clear, create or mutate a real CAP order, call smart contracts directly, add wallet/private-key/signing/swap/transaction-broadcast logic, or expose secrets.
 
+## Step 7A Local Provider Guard Scaffold
+
+Step 7A adds a pure local classifier for hypothetical CAP negotiation/order payloads. It returns `accept_candidate`, `reject`, or `manual_review` after checking the Aegis Risk Check service identity, requirements schema, fund-transfer metadata, prompt-injection language, and prohibited execution requests.
+
+The scaffold is disabled by disconnection: no listener calls it, no CROO SDK or WebSocket is imported, and no real order can be accepted. `accept_candidate` means only that a local payload passed the prefilter; it is not negotiation acceptance, provider readiness, Agent online status, or permission to call a CAP lifecycle method.
+
+`CAP_MODE=mock` remains the default. `real_cap_ready=false` remains mandatory because online heartbeat, controlled provider integration, and the real negotiation -> lock/pay/escrow -> deliver -> clear/settlement lifecycle are unverified.
+
 ## Safe Next Step
 
-Before any real provider test, design a controlled provider guard with `CAP_MODE=mock` as the default and an explicit disabled-by-default real-provider gate. The design should define validation for the target Service, schema, no fund transfer, no execution/wallet/signing/swap/broadcast requests, and safe delivery of Aegis risk-check schema output only.
-
-Do not run a real WebSocket provider or official provider example until that guard design is reviewed and explicitly approved.
+Review and commit the local scaffold while keeping it disconnected. Any later provider design must add a separate disabled-by-default real-provider gate, preserve this guard before every accept path, and receive explicit approval before a WebSocket connection, provider example, or real CAP method is used.

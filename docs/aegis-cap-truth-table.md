@@ -68,4 +68,6 @@ The planner always runs the Step 7A guard first. A valid risk-check payload can 
 
 ## Safe Next Step
 
-Review and commit Step 7B while keeping the skeleton disconnected. Do not add a listener, WebSocket connection, provider example, SDK runtime import, or real CAP lifecycle call without a separate reviewed and explicitly approved step.
+Step 7C-A audited the installed SDK source and official package metadata without importing runtime code or opening a connection. The SDK connects immediately, auto-reconnects, places the SDK key in a WebSocket query parameter, and logs the full connection URL at INFO level. Its official provider example auto-accepts negotiations and auto-delivers paid orders.
+
+A real online test is not safe yet. First implement and fake-test a separate observe-only readiness gate, credential-log redaction, hard timeout, event-triggered abort, and guaranteed close behavior. Then review sanitized Dashboard evidence and request explicit approval for one bounded connection-only probe. See `docs/croo-websocket-provider-readiness-step7c-a.md`.

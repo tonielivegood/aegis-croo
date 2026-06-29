@@ -8,7 +8,7 @@ It is not a trading bot. Aegis evaluates risk but has no wallet logic, private-k
 
 In CROO Agent Protocol (CAP) terms, Aegis Risk Oracle is the **Provider Agent** and Aegis Risk Check is its callable **Service**. The risk-check input is the **Requirements** schema, while the risk-check JSON response is the **Deliverable** schema. The A2A mock buyer is the **Requester Agent**; `buyer_agent_id` identifies that requester in this demo.
 
-The `proof` hashes are a local **Delivery Proof / Log Attestation** for the risk-check result. They are not on-chain proof. Real CAP integration is pending: this project does not yet invoke the `Negotiate -> Lock -> Deliver -> Clear` lifecycle, CROO SDK, payment, USDC escrow, settlement, reputation updates, or on-chain delivery.
+The `proof` hashes are a local **Delivery Proof / Log Attestation** for the risk-check result. They are not on-chain proof. Real CAP integration is pending: this project does not yet invoke the CROO SDK, real payment, USDC escrow, settlement, reputation updates, or on-chain delivery.
 
 `EXECUTE` means only that the risk decision found the proposed action acceptable. `safe_to_execute` is risk advice, not transaction authorization; Aegis never executes or submits a transaction.
 
@@ -39,7 +39,7 @@ $body = Get-Content -Raw .\examples\sample_requests.json
 Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8000/risk-check -ContentType application/json -Body $body
 ```
 
-Example request:
+Example risk request:
 
 ```json
 {
@@ -56,7 +56,7 @@ Example request:
 }
 ```
 
-The response contains `decision`, `risk_score`, `confidence`, `market_regime`, `safe_to_execute`, `risk_factors`, `reasons`, `suggested_action`, and a `proof` object with request, response, and policy hashes/version data. Each explainable risk factor contains a guard `name`, `severity`, `score_impact`, and deterministic `evidence`.
+The response contains `decision`, `risk_score`, `confidence`, `market_regime`, `safe_to_execute`, `risk_factors`, `reasons`, `suggested_action`, and a `proof` object with request, response, and policy hashes/version data.
 
 ## A2A mock requester demo
 
@@ -66,7 +66,23 @@ With the API running, call the simulation-only Requester Agent:
 python examples/mock_buyer_agent_demo.py
 ```
 
-The mock Requester Agent always asks the Aegis Provider Agent first. It maps `BLOCK` to `REFUSED`, `WAIT` to `DELAYED`, and `EXECUTE` to `SIMULATED_EXECUTION_ONLY`; it never submits a trade.
+The mock Requester Agent maps `BLOCK` to `REFUSED`, `WAIT` to `DELAYED`, and `EXECUTE` to `SIMULATED_EXECUTION_ONLY`; it never submits a trade.
+
+## Local CAP-ready Order demo
+
+Step 4 exposes a process-local CAP-shaped lifecycle:
+
+- `POST /orders`
+- `GET /orders/{order_id}`
+- `GET /proof/{proof_id}`
+
+The local lifecycle is `NEGOTIATED_MOCK -> LOCKED_MOCK -> DELIVERED -> CLEARED_MOCK`. The demo Service fixture costs 0.25 USDC with a 5-minute SLA, but no payment is made or locked. Run the full local flow with:
+
+```powershell
+python examples/order_flow_demo.py
+```
+
+Orders and proofs are held only in memory and disappear when the API restarts. `Local mock ledger only. No real CAP payment, escrow, on-chain delivery, or settlement.`
 
 ## Safety
 

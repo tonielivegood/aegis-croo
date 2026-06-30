@@ -12,6 +12,24 @@ Step 7D-A deliberately has no real SDK connector, live start path, real action a
 
 `real_cap_ready=false` remains mandatory before, during, and after every option in this runbook.
 
+## Step 7D-B0 Local Readiness Checker
+
+Step 7D-B0 adds `src/aegis_croo/cap/pilot_readiness.py`, a local-only prerequisite checker with no shell, SDK, network, or real action dependency. All repository, Dashboard, gate, approval, timeout, event-limit, and pending-work facts are injected as sanitized values.
+
+The checker returns:
+
+- `no_go` when any prerequisite is missing, unsafe, ambiguous, unbounded, or duplicated.
+- `approval_ready` for Option B only when every required injected fact passes.
+- `separate_approval_required` for Option C even when its current prerequisites pass; a future reviewed step must explicitly enable it.
+
+It also provides:
+
+- A process-local `PilotRunLockRegistry` that rejects duplicate sanitized run IDs and stores no approval-token value, secret, raw event, or credential.
+- A `FakePilotActionAdapter` that records typed `would_*` directives only and exposes no CROO/CAP mutation method.
+
+Local usage is to construct `PilotReadinessRequest` from injected `SanitizedDashboardStatus` and `PilotGateSnapshot` values, then call `evaluate_pilot_readiness(request, run_registry=registry)`. Do not read the shell, environment, Dashboard, SDK, or secret files inside the checker. Reserve an approved run ID with `PilotRunLockRegistry.reserve` only after the result is `approval_ready`.
+
+`approval_ready` means the sanitized local prerequisites are sufficient to request a separate live approval. It does not start or authorize a connector, listener, requester, negotiation, or provider mutation. The run-lock registry is process-local and is not sufficient cross-process idempotency for a live pilot.
 ## 1. Goal
 
 Verify one tightly controlled real CAP provider lifecycle step without violating Aegis safety boundaries, while preserving the product claim:
@@ -155,7 +173,7 @@ All items are mandatory for every option unless explicitly marked Option C only.
 
 ### Missing implementation prerequisites
 
-These do not exist in Step 7D-A and make all options **NO-GO today**:
+Step 7D-B0 implements the local checker, process-local run-lock model, and fake directive recorder. The following live boundaries still do not exist and make all options **NO-GO for execution today**:
 
 - A reviewed real SDK connector that disables automatic reconnect or detects and aborts it.
 - A reviewed real action adapter exposing only the methods authorized for the selected option.
@@ -393,7 +411,7 @@ Every row must be PASS before a live approval can be requested.
 
 ### Current go/no-go result
 
-**NO-GO for Options A, B, and C today.** The live connector, real action adapter, requester kill switches, cross-process idempotency, and fresh Dashboard/pending-order evidence are absent. Option C additionally lacks tested `ORDER_CREATED` handling and real payment/delivery integration.
+**Option B is locally approval-ready only when the Step 7D-B0 checker returns `approval_ready` for a complete sanitized snapshot. Live execution remains NO-GO today.** The live connector, real action adapter, requester harness, cross-process idempotency, and fresh Dashboard/pending-order evidence are absent. Option C remains `separate_approval_required` and additionally lacks tested `ORDER_CREATED` handling and real payment/delivery integration.
 
 ## 11. Rollback and Abort Plan
 

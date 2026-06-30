@@ -34,6 +34,7 @@ def ready_dashboard(**overrides) -> SanitizedDashboardStatus:
 def ready_option_b_gates(**overrides) -> PilotGateSnapshot:
     values = {
         "cap_mode": "real",
+        "cap_pilot_enabled": True,
         "real_provider_enabled": True,
         "controlled_runtime_enabled": True,
         "observe_only_enabled": False,
@@ -174,6 +175,33 @@ def test_missing_requester_kill_switch_is_no_go() -> None:
     assert "requester_gate_disabled" in result.reason_codes
 
 
+
+def test_missing_master_pilot_gate_defaults_false_and_is_no_go() -> None:
+    gate_values = ready_option_b_gates().model_dump()
+    gate_values.pop("cap_pilot_enabled", None)
+    gates = PilotGateSnapshot(**gate_values)
+
+    result = evaluate_pilot_readiness(
+        ready_request(gates=gates),
+        run_registry=PilotRunLockRegistry(),
+    )
+
+    assert getattr(gates, "cap_pilot_enabled", None) is False
+    assert result.status == "no_go"
+    assert "master_pilot_gate_disabled" in result.reason_codes
+
+
+def test_false_master_pilot_gate_is_no_go() -> None:
+    result = evaluate_pilot_readiness(
+        ready_request(
+            gates=ready_option_b_gates(cap_pilot_enabled=False),
+        ),
+        run_registry=PilotRunLockRegistry(),
+    )
+
+    assert result.status == "no_go"
+    assert "master_pilot_gate_disabled" in result.reason_codes
+
 def test_required_gates_must_be_explicit_and_bounded() -> None:
     result = evaluate_pilot_readiness(
         ready_request(
@@ -194,7 +222,10 @@ def test_required_gates_must_be_explicit_and_bounded() -> None:
 
 
 def test_all_prerequisites_return_approval_ready_for_option_b_only() -> None:
-    result = evaluate_pilot_readiness(ready_request())
+    result = evaluate_pilot_readiness(
+        ready_request(),
+        run_registry=PilotRunLockRegistry(),
+    )
 
     assert result.status == "approval_ready"
     assert result.option == "option_b"
@@ -203,6 +234,29 @@ def test_all_prerequisites_return_approval_ready_for_option_b_only() -> None:
     assert result.reason_codes == []
     assert result.real_action_performed is False
     assert result.real_cap_ready is False
+
+
+def test_missing_run_registry_is_no_go() -> None:
+    result = evaluate_pilot_readiness(ready_request())
+
+    assert result.status == "no_go"
+    assert result.approval_ready is False
+    assert "run_registry_unavailable" in result.reason_codes
+
+
+def test_unavailable_run_registry_is_no_go() -> None:
+    class UnavailableRunRegistry:
+        def contains(self, run_id: str) -> bool:
+            raise RuntimeError("registry unavailable")
+
+    result = evaluate_pilot_readiness(
+        ready_request(),
+        run_registry=UnavailableRunRegistry(),
+    )
+
+    assert result.status == "no_go"
+    assert result.approval_ready is False
+    assert "run_registry_unavailable" in result.reason_codes
 
 
 def test_option_c_remains_separate_approval_required() -> None:
@@ -219,7 +273,8 @@ def test_option_c_remains_separate_approval_required() -> None:
             option="option_c",
             gates=option_c_gates,
             run_id="pilot-2026-06-30-option-c-001",
-        )
+        ),
+        run_registry=PilotRunLockRegistry(),
     )
 
     assert result.status == "separate_approval_required"

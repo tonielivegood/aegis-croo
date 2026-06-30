@@ -39,6 +39,7 @@ class SanitizedDashboardStatus(BaseModel):
 
 class PilotGateSnapshot(BaseModel):
     cap_mode: Literal["mock", "real"] | None = None
+    cap_pilot_enabled: bool = False
     real_provider_enabled: bool | None = None
     controlled_runtime_enabled: bool | None = None
     observe_only_enabled: bool | None = None
@@ -227,8 +228,18 @@ def evaluate_pilot_readiness(
         reasons.append("missing_run_id")
     elif not _valid_run_id(request.run_id):
         reasons.append("invalid_run_id")
-    elif run_registry is not None and run_registry.contains(request.run_id):
-        reasons.append("duplicate_run_id")
+    elif run_registry is None:
+        reasons.append("run_registry_unavailable")
+    else:
+        try:
+            run_id_exists = run_registry.contains(request.run_id)
+        except Exception:
+            reasons.append("run_registry_unavailable")
+        else:
+            if run_id_exists is True:
+                reasons.append("duplicate_run_id")
+            elif run_id_exists is not False:
+                reasons.append("run_registry_unavailable")
 
     if request.approval_granted is not True:
         reasons.append("approval_not_granted")
@@ -237,6 +248,7 @@ def evaluate_pilot_readiness(
 
     required_gate_values = (
         gates.cap_mode,
+        gates.cap_pilot_enabled,
         gates.real_provider_enabled,
         gates.controlled_runtime_enabled,
         gates.observe_only_enabled,
@@ -257,6 +269,8 @@ def evaluate_pilot_readiness(
 
     if gates.cap_mode != "real":
         reasons.append("real_mode_not_requested")
+    if gates.cap_pilot_enabled is not True:
+        reasons.append("master_pilot_gate_disabled")
     if gates.real_provider_enabled is not True:
         reasons.append("real_provider_gate_disabled")
     if gates.controlled_runtime_enabled is not True:

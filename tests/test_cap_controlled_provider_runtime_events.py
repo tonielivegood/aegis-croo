@@ -38,16 +38,23 @@ VALID_PAYLOAD = {
 
 
 class FakeRuntimeStream:
-    def __init__(self, close_error: Exception | None = None) -> None:
+    def __init__(
+        self,
+        close_error: Exception | None = None,
+        registration_error: Exception | None = None,
+    ) -> None:
         self.handler = None
         self.close_calls = 0
         self.close_error = close_error
+        self.registration_error = registration_error
         self.runtime_error = None
         self.reconnecting = False
         self.registration_calls = 0
 
     def on_any(self, handler) -> None:
         self.registration_calls += 1
+        if self.registration_error is not None:
+            raise self.registration_error
         self.handler = handler
 
     async def close(self) -> None:
@@ -106,6 +113,35 @@ async def test_runtime_disabled_before_handler_registration() -> None:
     assert stream.close_calls == 0
     assert connect_calls == 0
 
+
+@pytest.mark.anyio
+async def test_registration_failure_is_sanitized_and_closes_once() -> None:
+    stream = FakeRuntimeStream(
+        registration_error=RuntimeError(
+            "registration failed key=croo_sk_registration-secret"
+        )
+    )
+    connect_calls = 0
+
+    async def connect(_stream) -> None:
+        nonlocal connect_calls
+        connect_calls += 1
+
+    runtime = ControlledProviderRuntime(config=runtime_config())
+
+    result = await runtime.run(stream, connect)
+
+    assert result.status == "error"
+    assert result.connected is False
+    assert result.closed is True
+    assert result.events_processed == 0
+    assert result.directives == []
+    assert result.error is not None
+    assert "croo_sk_" not in result.error
+    assert "registration-secret" not in result.error
+    assert stream.registration_calls == 1
+    assert stream.close_calls == 1
+    assert connect_calls == 0
 
 @pytest.mark.anyio
 async def test_negotiation_runs_guard_before_planner_and_never_returns_ids() -> None:

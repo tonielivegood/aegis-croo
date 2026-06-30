@@ -120,8 +120,7 @@ class ControlledProviderRuntime:
         def on_event(event: Any) -> None:
             loop.call_soon_threadsafe(queue.put_nowait, event)
 
-        stream.on_any(on_event)
-        connect_task = asyncio.create_task(connect(stream))
+        connect_task: asyncio.Task[None] | None = None
         deadline = loop.time() + self._config.timeout_seconds
         approved: dict[str, dict[str, Any]] = {}
         seen: set[tuple[str, str, str]] = set()
@@ -131,6 +130,8 @@ class ControlledProviderRuntime:
         error: str | None = None
 
         try:
+            stream.on_any(on_event)
+            connect_task = asyncio.create_task(connect(stream))
             while True:
                 health_error = _stream_health_error(stream)
                 if health_error is not None:
@@ -174,12 +175,13 @@ class ControlledProviderRuntime:
             status = "error"
             error = redact_sensitive_text(str(exc))
         finally:
-            if not connect_task.done():
+            if connect_task is not None and not connect_task.done():
                 connect_task.cancel()
                 await asyncio.gather(connect_task, return_exceptions=True)
 
         connected = (
-            connect_task.done()
+            connect_task is not None
+            and connect_task.done()
             and not connect_task.cancelled()
             and connect_task.exception() is None
         )

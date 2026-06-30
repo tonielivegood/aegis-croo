@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+import src.aegis_croo.cap.option_b_pilot_runner as runner_module
 from src.aegis_croo.cap.option_b_pilot_runner import (
     OptionBNegotiationPilotRequest,
     OptionBNegotiationPilotRunner,
@@ -260,6 +261,79 @@ async def test_simulated_negotiation_routes_to_manual_review_only() -> None:
     assert "raw-negotiation-id-should-not-leak" not in evidence
     assert "raw-secret" not in evidence
     assert "wss://" not in evidence
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "event_type",
+    [
+        "order_paid",
+        "paid_order",
+        "order_delivered",
+        "order_settled",
+        "unknown_event",
+        None,
+        123,
+        {"unexpected": "shape"},
+    ],
+)
+async def test_non_negotiation_event_types_are_blocked(event_type) -> None:
+    result = await OptionBNegotiationPilotRunner().simulate_negotiation(
+        ready_request(),
+        event={"type": event_type, "raw_id": "must-not-leak"},
+        run_registry=FakeRunRegistry(),
+    )
+
+    assert result.status == "no_go"
+    assert result.approval_ready is False
+    assert result.reason_codes == ["unsupported_event_type"]
+    assert result.simulated_event is None
+    assert result.directive_action is None
+    assert result.runtime_status is None
+    assert result.connection_attempted is False
+    assert result.live_execution_authorized is False
+    assert result.mutating_methods_called is False
+    assert result.real_cap_ready is False
+    assert "must-not-leak" not in result.model_dump_json()
+
+
+@pytest.mark.anyio
+async def test_missing_event_type_is_blocked() -> None:
+    result = await OptionBNegotiationPilotRunner().simulate_negotiation(
+        ready_request(),
+        event={"raw_id": "missing-type-must-not-leak"},
+        run_registry=FakeRunRegistry(),
+    )
+
+    assert result.status == "no_go"
+    assert result.reason_codes == ["unsupported_event_type"]
+    assert result.simulated_event is None
+    assert "missing-type-must-not-leak" not in result.model_dump_json()
+
+
+@pytest.mark.anyio
+async def test_paid_event_never_constructs_controlled_runtime(
+    monkeypatch,
+) -> None:
+    def forbidden_runtime(*args, **kwargs):
+        raise AssertionError(
+            "paid event reached risk, delivery, or controlled-runtime path"
+        )
+
+    monkeypatch.setattr(
+        runner_module,
+        "ControlledProviderRuntime",
+        forbidden_runtime,
+    )
+
+    result = await OptionBNegotiationPilotRunner().simulate_negotiation(
+        ready_request(),
+        event={"type": "order_paid", "order_id": "synthetic-order"},
+        run_registry=FakeRunRegistry(),
+    )
+
+    assert result.status == "no_go"
+    assert result.reason_codes == ["unsupported_event_type"]
+    assert result.mutating_methods_called is False
 
 
 def test_runner_has_no_sdk_network_start_or_mutating_calls() -> None:

@@ -131,6 +131,13 @@ class OptionBNegotiationPilotRunner:
         if prepared.status != "manual_review_plan_ready":
             return prepared
 
+        if event.get("type") != "order_negotiation_created":
+            return OptionBNegotiationPilotResult(
+                status="no_go",
+                approval_ready=False,
+                reason_codes=["unsupported_event_type"],
+            )
+
         plan = prepared.connection_plan
         if plan is None:
             return OptionBNegotiationPilotResult(

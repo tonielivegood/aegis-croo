@@ -7,7 +7,10 @@ import pytest
 
 from src.aegis_croo.cap.gated_real_sdk_adapter import (
     GatedRealCROOSDKAdapter,
+    RealCROONegotiationStream,
+    RealCROOSDKClientAdapter,
     RealCROOSDKCredentials,
+    RealSDKAdapterError,
     RealSDKAdapterBlocked,
     RealSDKGateSnapshot,
 )
@@ -288,6 +291,60 @@ def test_safe_defaults_block_sdk_loading() -> None:
     assert "real_mode_required" in exc_info.value.reason_codes
     assert importer.calls == []
     assert credentials_provider.calls == 0
+
+
+def test_cap_mode_real_alone_cannot_construct_or_load_sdk() -> None:
+    importer = RecordingImporter(SimpleNamespace())
+    credentials_provider = RecordingCredentialsProvider()
+    adapter = GatedRealCROOSDKAdapter(
+        gates=RealSDKGateSnapshot(cap_mode="real"),
+        credentials_provider=credentials_provider,
+        importer=importer,
+    )
+
+    with pytest.raises(RealSDKAdapterBlocked) as exc_info:
+        adapter.load_client()
+
+    assert exc_info.value.reason_codes == [
+        "master_pilot_gate_disabled",
+        "connector_start_not_authorized",
+        "sdk_load_not_authorized",
+        "option_b_pilot_not_authorized",
+    ]
+    assert importer.calls == []
+    assert credentials_provider.calls == 0
+
+
+def test_direct_sdk_client_adapter_construction_fails_closed() -> None:
+    state = FakeSDKState()
+    sdk_client = fake_sdk_module(state).AgentClient(
+        SimpleNamespace(),
+        "fake-only-key",
+    )
+
+    with pytest.raises(
+        RealSDKAdapterError,
+        match="^sdk_internal_construction_forbidden$",
+    ):
+        RealCROOSDKClientAdapter(sdk_client)
+
+    assert state.connect_calls == 0
+
+
+def test_direct_negotiation_stream_construction_cannot_connect() -> None:
+    state = FakeSDKState()
+    sdk_client = fake_sdk_module(state).AgentClient(
+        SimpleNamespace(),
+        "fake-only-key",
+    )
+
+    with pytest.raises(
+        RealSDKAdapterError,
+        match="^sdk_internal_construction_forbidden$",
+    ):
+        RealCROONegotiationStream(sdk_client)
+
+    assert state.connect_calls == 0
 
 
 @pytest.mark.parametrize(

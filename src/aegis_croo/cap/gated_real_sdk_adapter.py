@@ -96,6 +96,14 @@ class RealSDKAdapterBlocked(RealSDKAdapterError):
         super().__init__(",".join(self.reason_codes))
 
 
+_CONSTRUCTION_CAPABILITY = object()
+
+
+def _require_construction_capability(capability: object | None) -> None:
+    if capability is not _CONSTRUCTION_CAPABILITY:
+        raise RealSDKAdapterError("sdk_internal_construction_forbidden")
+
+
 class GatedRealCROOSDKAdapter:
     """Construct a narrow SDK client only after every pilot gate passes."""
 
@@ -150,23 +158,41 @@ class GatedRealCROOSDKAdapter:
             sdk_client = client_type(config, credentials.sdk_key)
         except Exception:
             raise RealSDKAdapterError("sdk_client_init_failed") from None
-        return RealCROOSDKClientAdapter(sdk_client)
+        return RealCROOSDKClientAdapter(
+            sdk_client,
+            _construction_capability=_CONSTRUCTION_CAPABILITY,
+        )
 
 
 class RealCROOSDKClientAdapter:
     """Expose only the negotiation-stream surface required by B2-B."""
 
-    def __init__(self, sdk_client: SDKAgentClient) -> None:
+    def __init__(
+        self,
+        sdk_client: SDKAgentClient,
+        *,
+        _construction_capability: object | None = None,
+    ) -> None:
+        _require_construction_capability(_construction_capability)
         self._sdk_client = sdk_client
 
     async def open_negotiation_stream(self) -> RealCROONegotiationStream:
-        return RealCROONegotiationStream(self._sdk_client)
+        return RealCROONegotiationStream(
+            self._sdk_client,
+            _construction_capability=_CONSTRUCTION_CAPABILITY,
+        )
 
 
 class RealCROONegotiationStream:
     """Defer the real SDK connection until B2-B calls start explicitly."""
 
-    def __init__(self, sdk_client: SDKAgentClient) -> None:
+    def __init__(
+        self,
+        sdk_client: SDKAgentClient,
+        *,
+        _construction_capability: object | None = None,
+    ) -> None:
+        _require_construction_capability(_construction_capability)
         self._sdk_client = sdk_client
         self._handler: Callable[[Any], None] | None = None
         self._stream: SDKEventStream | None = None

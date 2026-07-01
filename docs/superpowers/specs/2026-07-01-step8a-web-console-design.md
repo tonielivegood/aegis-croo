@@ -27,8 +27,8 @@ Existing API routes remain unchanged:
 
 ## Product Surface
 
-The page is a dark, precise operations console with warm off-white typography,
-electric cyan status accents, amber caution states, and red BLOCK states. It
+The page is a dark, precise operations console with cool off-white typography,
+sparing neon-green verified accents, amber caution states, and red BLOCK states. It
 uses restrained borders, generous spacing, monospace data surfaces, and a
 responsive two-column grid that collapses cleanly on narrow screens.
 

@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Aegis Risk Oracle checks proposed agent actions before execution and returns an evidence-backed risk decision.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'self';">
+  <link rel="icon" href="data:,">
+  <title>Aegis Risk Oracle · Web Console</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to console</a>
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="Aegis Risk Oracle home">
+      <span class="brand-mark" aria-hidden="true">A</span>
+      <span>Aegis Risk Oracle</span>
+    </a>
+    <nav aria-label="Console sections">
+      <a href="#risk-check">Risk check</a>
+      <a href="#orders">Orders & proof</a>
+      <a href="#integrate">Integrate</a>
+    </nav>
+    <span class="status-badge status-badge--verified">Local API console</span>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="hero__copy">
+        <h1 id="hero-title">Aegis Risk Oracle</h1>
+        <p class="hero__lead">Other agents can hire Aegis before they execute.</p>
+        <p class="hero__support">Aegis returns BLOCK, WAIT, or EXECUTE with proof.</p>
+        <p class="hero__boundary">Aegis checks risk before execution. It never executes, signs, swaps, or broadcasts.</p>
+        <div class="hero__actions">
+          <a class="button button--primary" href="#risk-check">Run a risk check</a>
+          <a class="button button--secondary" href="#integrate">View API contract</a>
+        </div>
+      </div>
+      <aside class="hero__proof" aria-label="Aegis decision contract">
+        <div class="decision-stack">
+          <div class="decision decision--block"><strong>BLOCK</strong><span>Refuse the proposed action</span></div>
+          <div class="decision decision--wait"><strong>WAIT</strong><span>Pause for data or review</span></div>
+          <div class="decision decision--execute"><strong>EXECUTE</strong><span>Risk decision favorable; no transaction is executed</span></div>
+        </div>
+        <p class="microcopy">Deterministic policy · inspectable reasons · hash-linked proof</p>
+      </aside>
+    </section>
+
+    <section class="section status-section" aria-labelledby="status-title">
+      <div class="section-heading">
+        <div>
+          <p class="section-index">01 / LIVE POSTURE</p>
+          <h2 id="status-title">System posture</h2>
+        </div>
+        <button class="button button--secondary" id="refresh-status" type="button">Refresh status</button>
+      </div>
+      <p class="section-intro">Read directly from <code>/health</code> and <code>/cap/status</code>. Missing fields remain unverified—not inferred.</p>
+      <div class="status-grid" aria-live="polite">
+        <article class="status-item"><span>Service health</span><strong id="health-status">Checking…</strong><small id="health-service">/health</small></article>
+        <article class="status-item"><span>CAP_MODE</span><strong id="cap-mode">Checking…</strong><small>Default must remain mock</small></article>
+        <article class="status-item"><span>real_cap_ready</span><strong id="real-cap-ready">false</strong><small>Readiness is not inferred</small></article>
+        <article class="status-item"><span>Adapter posture</span><strong id="adapter-status">Checking…</strong><small id="sdk-status">/cap/status</small></article>
+        <article class="status-item"><span>live_execution_authorized</span><strong id="live-execution-authorized">false</strong><small>Immutable safety boundary</small></article>
+        <article class="status-item"><span>mutating_methods_called</span><strong id="mutating-methods-called">false</strong><small>Immutable safety boundary</small></article>
+      </div>
+      <p class="safety-rail">No wallet, signing, swap, transaction, or broadcast path.</p>
+      <p class="request-state" id="status-message" aria-live="polite"></p>
+    </section>
+
+    <section class="section" id="risk-check" aria-labelledby="risk-title">
+      <div class="section-heading">
+        <div>
+          <p class="section-index">02 / CORE API</p>
+          <h2 id="risk-title">Risk Check Console</h2>
+        </div>
+        <span class="endpoint-label">POST /risk-check</span>
+      </div>
+      <p class="section-intro">Edit the proposed action, send it to the real local oracle, and inspect the decision and proof returned by the API.</p>
+      <div class="workbench">
+        <form class="console-panel" id="risk-form">
+          <div class="panel-header">
+            <div><h3>Requirements JSON</h3><p>Chain-agnostic risk input</p></div>
+            <button class="text-button" id="reset-risk" type="button">Reset sample</button>
+          </div>
+          <label class="sr-only" for="risk-request">Risk check request JSON</label>
+          <textarea id="risk-request" class="json-input" spellcheck="false" aria-describedby="risk-error"></textarea>
+          <p class="field-error" id="risk-error" role="alert"></p>
+          <button class="button button--primary" id="run-risk" type="submit">Run risk check</button>
+        </form>
+
+        <article class="console-panel result-panel" id="risk-result" aria-live="polite" aria-busy="false">
+          <div class="panel-header">
+            <div><h3>Risk deliverable</h3><p>Real response from the local API</p></div>
+            <span class="decision-badge" id="risk-decision">READY</span>
+          </div>
+          <div class="result-hero">
+            <div><span>Risk score</span><strong id="risk-score">—</strong></div>
+            <div><span>Confidence</span><strong id="risk-confidence">—</strong></div>
+            <div><span>Market regime</span><strong id="risk-regime">—</strong></div>
+            <div><span>safe_to_execute</span><strong id="risk-safe">—</strong></div>
+          </div>
+          <div class="result-group"><h4>Reasons</h4><ul id="risk-reasons" class="evidence-list"><li>Submit a request to inspect the oracle response.</li></ul></div>
+          <div class="result-group"><h4>Risk factors</h4><div id="risk-factors" class="factor-list"><p class="muted">No response yet.</p></div></div>
+          <div class="result-group"><h4>Suggested action</h4><p id="risk-action" class="suggested-action">—</p></div>
+          <div class="proof-panel" aria-label="Risk proof fields">
+            <div class="proof-heading"><h4>Proof</h4><span>Local log attestation · not on-chain proof</span></div>
+            <dl>
+              <div><dt>request_hash</dt><dd><code id="risk-request-hash">—</code><button class="copy-button" type="button" data-copy="risk-request-hash">Copy</button></dd></div>
+              <div><dt>response_hash</dt><dd><code id="risk-response-hash">—</code><button class="copy-button" type="button" data-copy="risk-response-hash">Copy</button></dd></div>
+              <div><dt>proof_hash / result_hash</dt><dd><code id="risk-result-hash">Not reported</code><button class="copy-button" type="button" data-copy="risk-result-hash">Copy</button></dd></div>
+              <div><dt>policy_version</dt><dd><code id="risk-policy-version">—</code><button class="copy-button" type="button" data-copy="risk-policy-version">Copy</button></dd></div>
+            </dl>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section compact-section" aria-labelledby="a2a-title">
+      <div class="section-heading">
+        <div>
+          <p class="section-index">03 / AGENT-TO-AGENT</p>
+          <h2 id="a2a-title">Mock A2A Order</h2>
+        </div>
+        <span class="endpoint-label">POST /a2a/mock-order</span>
+      </div>
+      <div class="split-layout">
+        <div class="open-copy">
+          <p>A mock requester agent asks Aegis to evaluate the JSON currently in the Risk Check Console.</p>
+          <ul class="mapping-list">
+            <li><span class="decision-dot decision-dot--block"></span><strong>BLOCK</strong><span>simulated execution is refused</span></li>
+            <li><span class="decision-dot decision-dot--wait"></span><strong>WAIT</strong><span>simulated execution is delayed</span></li>
+            <li><span class="decision-dot decision-dot--execute"></span><strong>EXECUTE</strong><span>simulated execution only</span></li>
+          </ul>
+          <button class="button button--primary" id="run-a2a" type="button">Run mock A2A check</button>
+        </div>
+        <article class="console-panel compact-result" aria-live="polite" aria-busy="false" id="a2a-result">
+          <div class="panel-header"><div><h3>Requester result</h3><p>Local simulation only</p></div><span class="status-badge" id="a2a-status">READY</span></div>
+          <dl class="key-values">
+            <div><dt>Aegis decision</dt><dd id="a2a-decision">—</dd></div>
+            <div><dt>Mock execution status</dt><dd id="a2a-execution">—</dd></div>
+            <div><dt>Risk score</dt><dd id="a2a-score">—</dd></div>
+            <div><dt>Reason</dt><dd id="a2a-reason">—</dd></div>
+          </dl>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="orders" aria-labelledby="orders-title">
+      <div class="section-heading">
+        <div>
+          <p class="section-index">04 / LOCAL COMMERCE MODEL</p>
+          <h2 id="orders-title">Local Order &amp; Proof</h2>
+        </div>
+        <span class="status-badge">LOCAL MOCK</span>
+      </div>
+      <p class="section-intro">Exercise the in-memory order ledger and proof retrieval contract. No payment, escrow, delivery network, or settlement is performed.</p>
+      <div class="order-actions">
+        <button class="button button--primary" id="create-order" type="button">Create local mock order</button>
+        <label>Order ID<input id="order-id" type="text" autocomplete="off" placeholder="order_…"></label>
+        <button class="button button--secondary" id="fetch-order" type="button">GET order</button>
+        <label>Proof ID<input id="proof-id" type="text" autocomplete="off" placeholder="proof_…"></label>
+        <button class="button button--secondary" id="fetch-proof" type="button">GET proof</button>
+      </div>
+      <div class="order-grid">
+        <article class="console-panel" aria-live="polite" aria-busy="false" id="order-result">
+          <div class="panel-header"><div><h3>Order record</h3><p>POST /orders · GET /orders/{order_id}</p></div><span class="status-badge" id="order-status">READY</span></div>
+          <pre class="json-output" id="order-output">No local order created.</pre>
+        </article>
+        <article class="proof-panel proof-panel--large" aria-live="polite" aria-busy="false" id="proof-result">
+          <div class="proof-heading"><h3>Delivery proof</h3><span>GET /proof/{proof_id}</span></div>
+          <dl>
+            <div><dt>proof_id</dt><dd><code id="proof-proof-id">—</code><button class="copy-button" type="button" data-copy="proof-proof-id">Copy</button></dd></div>
+            <div><dt>order_id</dt><dd><code id="proof-order-id">—</code><button class="copy-button" type="button" data-copy="proof-order-id">Copy</button></dd></div>
+            <div><dt>request_hash</dt><dd><code id="proof-request-hash">—</code><button class="copy-button" type="button" data-copy="proof-request-hash">Copy</button></dd></div>
+            <div><dt>response_hash</dt><dd><code id="proof-response-hash">—</code><button class="copy-button" type="button" data-copy="proof-response-hash">Copy</button></dd></div>
+            <div><dt>result_hash</dt><dd><code id="proof-result-hash">—</code><button class="copy-button" type="button" data-copy="proof-result-hash">Copy</button></dd></div>
+            <div><dt>policy_version</dt><dd><code id="proof-policy-version">—</code><button class="copy-button" type="button" data-copy="proof-policy-version">Copy</button></dd></div>
+            <div><dt>created_at</dt><dd><code id="proof-created-at">—</code></dd></div>
+          </dl>
+        </article>
+      </div>
+      <p class="request-state" id="order-message" aria-live="polite"></p>
+    </section>
+
+    <section class="section readiness" aria-labelledby="readiness-title">
+      <div class="readiness__headline">
+        <p class="section-index">05 / CROO AGENT COMMERCE</p>
+        <h2 id="readiness-title">CROO Agent Store readiness</h2>
+        <p>CAP-ready gated runtime; real payment, delivery, settlement, and commercial readiness are not claimed yet.</p>
+      </div>
+      <div class="readiness__details">
+        <dl class="key-values">
+          <div><dt>Pilot price</dt><dd>0.12 USDC pilot</dd></div>
+          <div><dt>Target track</dt><dd>Data &amp; Verification Agents</dd></div>
+          <div><dt>Target track</dt><dd>DeFi / On-chain Ops Agents</dd></div>
+          <div><dt>Next approved step</dt><dd>One manual-review real negotiation observation only</dd></div>
+        </dl>
+        <p class="boundary-note">No accept, reject, pay, or deliver action is authorized by this console.</p>
+      </div>
+    </section>
+
+    <section class="section" id="integrate" aria-labelledby="integrate-title">
+      <div class="section-heading">
+        <div>
+          <p class="section-index">06 / BUILDER CONTRACT</p>
+          <h2 id="integrate-title">Developer integration</h2>
+        </div>
+        <span class="status-badge status-badge--verified">Same-origin JSON API</span>
+      </div>
+      <p class="section-intro">Call Aegis before your agent acts. Start with health and risk-check; use local/mock order endpoints only when testing integration contracts.</p>
+      <div class="code-grid">
+        <article class="code-card"><div><h3>Health &amp; posture</h3><button class="copy-button" type="button" data-copy="curl-health">Copy</button></div><pre id="curl-health">curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8000/cap/status</pre></article>
+        <article class="code-card"><div><h3>Risk check</h3><button class="copy-button" type="button" data-copy="curl-risk">Copy</button></div><pre id="curl-risk">curl -X POST http://127.0.0.1:8000/risk-check \
+  -H "Content-Type: application/json" \
+  --data @risk-request.json</pre></article>
+        <article class="code-card"><div><h3>Mock A2A</h3><button class="copy-button" type="button" data-copy="curl-a2a">Copy</button></div><pre id="curl-a2a">curl -X POST http://127.0.0.1:8000/a2a/mock-order \
+  -H "Content-Type: application/json" \
+  --data @mock-order.json</pre></article>
+        <article class="code-card"><div><h3>Local order &amp; proof</h3><button class="copy-button" type="button" data-copy="curl-order">Copy</button></div><pre id="curl-order">curl -X POST http://127.0.0.1:8000/orders -H "Content-Type: application/json" --data @order.json
+curl http://127.0.0.1:8000/orders/{order_id}
+curl http://127.0.0.1:8000/proof/{proof_id}</pre></article>
+      </div>
+      <article class="response-contract">
+        <h3>Expected risk response shape</h3>
+        <pre>{
+  "decision": "BLOCK | WAIT | EXECUTE",
+  "risk_score": 0,
+  "confidence": "low | medium | high",
+  "market_regime": "string",
+  "safe_to_execute": false,
+  "reasons": ["string"],
+  "risk_factors": [],
+  "suggested_action": "string",
+  "proof": {
+    "request_hash": "sha256",
+    "response_hash": "sha256",
+    "policy_version": "string"
+  }
+}</pre>
+      </article>
+    </section>
+  </main>
+
+  <footer>
+    <div><strong>Aegis Risk Oracle</strong><span>Pre-trade risk infrastructure for agents.</span></div>
+    <p>Risk advice only. EXECUTE is not transaction authorization.</p>
+  </footer>
+</body>
+</html>

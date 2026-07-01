@@ -1,7 +1,7 @@
 # Aegis CROO Session Handoff — Step 7D-B3-A P1 Fix
 
-Date: 2026-07-01  
-Project: Aegis Risk Oracle CROO  
+Date: 2026-07-01
+Project: Aegis Risk Oracle CROO
 Repository: `E:\Aegis-CROO`
 
 ## Positioning

@@ -29,6 +29,7 @@ QuarantinedConnectorStatus = Literal[
 
 _NEGOTIATION_EVENT_TYPE = "order_negotiation_created"
 _MULTIPLE_EVENTS = object()
+_NO_EVENT = object()
 _ALLOWED_EVENT_KEYS = {
     "type",
     "service_id",
@@ -277,6 +278,7 @@ class QuarantinedSDKNegotiationConnector:
 
         loop = asyncio.get_running_loop()
         deadline = loop.time() + plan.runtime_timeout_seconds
+        first_event: Any = _NO_EVENT
         while True:
             stream_error = _stream_error(stream)
             if stream_error is not None:
@@ -299,19 +301,29 @@ class QuarantinedSDKNegotiationConnector:
                     )
             remaining = deadline - loop.time()
             if remaining <= 0:
-                return QuarantinedConnectorResult(
-                    status="timed_out",
-                    reason_codes=["event_timeout"],
-                    sdk_load_attempted=True,
-                    sdk_loaded=True,
-                    stream_start_attempted=True,
+                if first_event is _NO_EVENT:
+                    return QuarantinedConnectorResult(
+                        status="timed_out",
+                        reason_codes=["event_timeout"],
+                        sdk_load_attempted=True,
+                        sdk_loaded=True,
+                        stream_start_attempted=True,
+                    )
+                return await self._route_event(
+                    request,
+                    event=first_event,
+                    run_registry=run_registry,
                 )
             try:
                 event = await asyncio.wait_for(
                     queue.get(), timeout=min(0.01, remaining)
                 )
             except TimeoutError:
-                if start_task.done() and start_task.exception() is None:
+                if (
+                    first_event is _NO_EVENT
+                    and start_task.done()
+                    and start_task.exception() is None
+                ):
                     return QuarantinedConnectorResult(
                         status="stream_error",
                         reason_codes=["stream_ended_without_event"],
@@ -320,11 +332,13 @@ class QuarantinedSDKNegotiationConnector:
                         stream_start_attempted=True,
                     )
                 continue
-            return await self._route_event(
-                request,
-                event=event,
-                run_registry=run_registry,
-            )
+            if event is _MULTIPLE_EVENTS or first_event is not _NO_EVENT:
+                return await self._route_event(
+                    request,
+                    event=_MULTIPLE_EVENTS,
+                    run_registry=run_registry,
+                )
+            first_event = event
 
     async def _route_event(
         self,

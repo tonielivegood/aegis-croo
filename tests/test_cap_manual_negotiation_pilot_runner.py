@@ -62,6 +62,31 @@ class FakeSDKEventStream:
         return None
 
 
+class ScheduledSecondEventStream(FakeSDKEventStream):
+    def __init__(self, schedule: str) -> None:
+        super().__init__()
+        self.schedule = schedule
+
+    def on_any(self, handler) -> None:
+        self.registration_calls += 1
+        loop = asyncio.get_running_loop()
+        first = negotiation_event()
+        second = negotiation_event()
+        if self.schedule == "queued":
+            loop.call_soon(handler, first)
+            loop.call_soon(handler, second)
+            return
+        handler(first)
+        if self.schedule == "adjacent":
+            loop.call_soon(handler, second)
+        elif self.schedule == "timer_zero":
+            loop.call_later(0, handler, second)
+        elif self.schedule == "delayed":
+            loop.call_later(0.01, handler, second)
+        else:
+            raise AssertionError(f"unsupported fake schedule: {self.schedule}")
+
+
 class FakeSDKState:
     def __init__(
         self,
@@ -386,6 +411,46 @@ async def test_duplicate_events_fail_closed() -> None:
     assert result.status == "no_go"
     assert result.reason_codes == ["multiple_events_observed"]
     assert result.negotiation_evidence is None
+    assert state.stream.close_calls == 1
+    assert state.client_close_calls == 1
+
+
+@pytest.mark.anyio
+async def test_adjacent_turn_second_event_fails_closed_and_closes_once() -> None:
+    state = FakeSDKState(stream=ScheduledSecondEventStream("adjacent"))
+
+    result = await build_runner(state).run_once(
+        ready_request(),
+        run_registry=FakeRunRegistry(),
+    )
+
+    assert result.status == "no_go"
+    assert result.status != "manual_review"
+    assert result.reason_codes == ["multiple_events_observed"]
+    assert result.negotiation_evidence is None
+    assert result.close_attempted is True
+    assert result.closed is True
+    assert state.stream.close_calls == 1
+    assert state.client_close_calls == 1
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize("schedule", ["queued", "timer_zero", "delayed"])
+async def test_queued_and_deferred_second_events_fail_closed(
+    schedule: str,
+) -> None:
+    state = FakeSDKState(stream=ScheduledSecondEventStream(schedule))
+
+    result = await build_runner(state).run_once(
+        ready_request(),
+        run_registry=FakeRunRegistry(),
+    )
+
+    assert result.status == "no_go"
+    assert result.reason_codes == ["multiple_events_observed"]
+    assert result.negotiation_evidence is None
+    assert result.close_attempted is True
+    assert result.closed is True
     assert state.stream.close_calls == 1
     assert state.client_close_calls == 1
 

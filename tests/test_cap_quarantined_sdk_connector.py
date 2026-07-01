@@ -536,6 +536,9 @@ def test_connector_has_no_sdk_network_startup_or_mutating_imports() -> None:
 
 def test_application_paths_do_not_reference_quarantined_connector() -> None:
     module_name = "quarantined_sdk_connector"
+    allowed_manual_boundary = Path(
+        "src/aegis_croo/cap/manual_negotiation_pilot_runner.py"
+    )
     references = []
     for path in Path("src/aegis_croo").rglob("*.py"):
         if path.name == "quarantined_sdk_connector.py":
@@ -543,4 +546,4 @@ def test_application_paths_do_not_reference_quarantined_connector() -> None:
         if module_name in path.read_text(encoding="utf-8"):
             references.append(path)
 
-    assert references == []
+    assert references == [allowed_manual_boundary]

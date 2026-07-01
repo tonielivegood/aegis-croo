@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable, Mapping
+from threading import Lock
 from typing import Any, Literal, Protocol
 
 from pydantic import BaseModel, Field
@@ -27,6 +28,7 @@ QuarantinedConnectorStatus = Literal[
 ]
 
 _NEGOTIATION_EVENT_TYPE = "order_negotiation_created"
+_MULTIPLE_EVENTS = object()
 _ALLOWED_EVENT_KEYS = {
     "type",
     "service_id",
@@ -189,11 +191,22 @@ class QuarantinedSDKNegotiationConnector:
         try:
             loop = asyncio.get_running_loop()
             queue: asyncio.Queue[Any] = asyncio.Queue(maxsize=1)
+            event_count = 0
+            event_count_lock = Lock()
 
             def on_event(event: Any) -> None:
+                nonlocal event_count
+                with event_count_lock:
+                    event_count += 1
+                    queued_event = event if event_count == 1 else _MULTIPLE_EVENTS
+
                 def put_once() -> None:
-                    if queue.empty():
-                        queue.put_nowait(event)
+                    if queued_event is _MULTIPLE_EVENTS:
+                        if not queue.empty():
+                            queue.get_nowait()
+                        queue.put_nowait(_MULTIPLE_EVENTS)
+                    elif queue.empty():
+                        queue.put_nowait(queued_event)
 
                 loop.call_soon_threadsafe(put_once)
 
@@ -320,6 +333,15 @@ class QuarantinedSDKNegotiationConnector:
         event: Any,
         run_registry: PilotRunIDLookup | None,
     ) -> QuarantinedConnectorResult:
+        if event is _MULTIPLE_EVENTS:
+            return QuarantinedConnectorResult(
+                status="no_go",
+                reason_codes=["multiple_events_observed"],
+                sdk_load_attempted=True,
+                sdk_loaded=True,
+                stream_start_attempted=True,
+                event_received=True,
+            )
         if not isinstance(event, Mapping) or event.get("type") != _NEGOTIATION_EVENT_TYPE:
             return QuarantinedConnectorResult(
                 status="no_go",

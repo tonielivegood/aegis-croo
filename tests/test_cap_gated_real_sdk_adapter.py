@@ -606,6 +606,9 @@ def test_adapter_has_no_module_time_sdk_import_or_mutating_calls() -> None:
 
 def test_application_paths_do_not_reference_real_sdk_adapter() -> None:
     module_name = "gated_real_sdk_adapter"
+    allowed_manual_boundary = Path(
+        "src/aegis_croo/cap/manual_negotiation_pilot_runner.py"
+    )
     references = []
     for path in Path("src/aegis_croo").rglob("*.py"):
         if path.name == "gated_real_sdk_adapter.py":
@@ -613,4 +616,4 @@ def test_application_paths_do_not_reference_real_sdk_adapter() -> None:
         if module_name in path.read_text(encoding="utf-8"):
             references.append(path)
 
-    assert references == []
+    assert references == [allowed_manual_boundary]

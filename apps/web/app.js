@@ -19,12 +19,33 @@ const SAMPLE_REQUEST = {
   },
 };
 
+const RISK_SCENARIOS = Object.freeze({
+  execute: {
+    note: "Complete evidence with low volatility. Submit to ask the oracle.",
+    request: SAMPLE_REQUEST,
+  },
+  wait: {
+    note: "Volatility is elevated to 8. Submit to ask the oracle.",
+    request: {
+      ...SAMPLE_REQUEST,
+      market_signal: { ...SAMPLE_REQUEST.market_signal, volatility_24h: 8 },
+    },
+  },
+  block: {
+    note: "Volatility is critical at 12. Submit to ask the oracle.",
+    request: {
+      ...SAMPLE_REQUEST,
+      market_signal: { ...SAMPLE_REQUEST.market_signal, volatility_24h: 12 },
+    },
+  },
+});
+
 const elements = Object.fromEntries(
   [
     "refresh-status", "health-status", "health-service", "cap-mode",
     "real-cap-ready", "adapter-status", "sdk-status",
     "live-execution-authorized", "mutating-methods-called", "status-message",
-    "risk-form", "risk-request", "risk-error", "reset-risk", "run-risk",
+    "risk-form", "risk-request", "risk-error", "reset-risk", "run-risk", "scenario-note",
     "risk-result", "risk-decision", "risk-score", "risk-confidence",
     "risk-regime", "risk-safe", "risk-reasons", "risk-factors",
     "risk-action", "risk-request-hash", "risk-response-hash",
@@ -40,6 +61,16 @@ const elements = Object.fromEntries(
 
 function setText(node, value, fallback = "Not reported") {
   if (node) node.textContent = value == null || value === "" ? fallback : String(value);
+}
+
+function setCopyValue(node, value) {
+  if (!node) return;
+  const fullValue = value == null || value === "" ? "Not reported" : String(value);
+  node.dataset.fullValue = fullValue;
+  node.title = fullValue;
+  node.textContent = fullValue.length > 32
+    ? fullValue.slice(0, 14) + "…" + fullValue.slice(-14)
+    : fullValue;
 }
 
 function clearNode(node) {
@@ -143,18 +174,18 @@ function renderRiskResult(result) {
   renderList(elements["risk-reasons"], result.reasons, "No reasons reported.");
   renderFactors(elements["risk-factors"], result.risk_factors);
   setText(elements["risk-action"], result.suggested_action);
-  setText(elements["risk-request-hash"], result.proof?.request_hash);
-  setText(elements["risk-response-hash"], result.proof?.response_hash);
-  setText(elements["risk-result-hash"], result.proof?.result_hash || result.proof?.proof_hash);
+  setCopyValue(elements["risk-request-hash"], result.proof?.request_hash);
+  setCopyValue(elements["risk-response-hash"], result.proof?.response_hash);
+  setCopyValue(elements["risk-result-hash"], result.proof?.result_hash || result.proof?.proof_hash);
   setText(elements["risk-policy-version"], result.proof?.policy_version);
 }
 
 function renderProof(proof) {
   setText(elements["proof-proof-id"], proof?.proof_id);
   setText(elements["proof-order-id"], proof?.order_id);
-  setText(elements["proof-request-hash"], proof?.request_hash);
-  setText(elements["proof-response-hash"], proof?.response_hash);
-  setText(elements["proof-result-hash"], proof?.result_hash);
+  setCopyValue(elements["proof-request-hash"], proof?.request_hash);
+  setCopyValue(elements["proof-response-hash"], proof?.response_hash);
+  setCopyValue(elements["proof-result-hash"], proof?.result_hash);
   setText(elements["proof-policy-version"], proof?.policy_version);
   setText(elements["proof-created-at"], proof?.created_at);
 }
@@ -304,25 +335,43 @@ async function fetchProof() {
   }
 }
 
+function selectScenario(button) {
+  const scenario = RISK_SCENARIOS[button?.dataset.scenario];
+  if (!scenario) return;
+  elements["risk-request"].value = JSON.stringify(scenario.request, null, 2);
+  setText(elements["scenario-note"], scenario.note);
+  setText(elements["risk-error"], "", "");
+  for (const option of document.querySelectorAll("[data-scenario]")) {
+    option.setAttribute("aria-pressed", String(option === button));
+  }
+}
+
 async function copyValue(button) {
   const source = document.getElementById(button.dataset.copy);
   if (!source) return;
   const original = button.textContent;
   try {
-    await navigator.clipboard.writeText(source.textContent);
+    await navigator.clipboard.writeText(source.dataset.fullValue || source.textContent);
     button.textContent = "Copied";
+    button.setAttribute("aria-label", "Copied " + source.id);
   } catch (_error) {
     button.textContent = "Copy unavailable";
+    button.setAttribute("aria-label", "Copy unavailable for " + source.id);
   }
-  window.setTimeout(() => { button.textContent = original; }, 1400);
+  window.setTimeout(() => {
+    button.textContent = original;
+    button.setAttribute("aria-label", "Copy " + source.id);
+  }, 1400);
 }
 
-elements["risk-request"].value = JSON.stringify(SAMPLE_REQUEST, null, 2);
+selectScenario(document.querySelector('[data-scenario="execute"]'));
 elements["risk-form"].addEventListener("submit", runRiskCheck);
 elements["reset-risk"].addEventListener("click", () => {
-  elements["risk-request"].value = JSON.stringify(SAMPLE_REQUEST, null, 2);
-  setText(elements["risk-error"], "", "");
+  selectScenario(document.querySelector('[data-scenario="execute"]'));
 });
+for (const button of document.querySelectorAll("[data-scenario]")) {
+  button.addEventListener("click", () => selectScenario(button));
+}
 elements["refresh-status"].addEventListener("click", refreshStatus);
 elements["run-a2a"].addEventListener("click", runMockA2A);
 elements["create-order"].addEventListener("click", createLocalOrder);

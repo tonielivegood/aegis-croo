@@ -31,7 +31,9 @@
       <div class="hero__copy">
         <h1 id="hero-title">Aegis Risk Oracle</h1>
         <p class="hero__lead">Other agents can hire Aegis before they execute.</p>
-        <p class="hero__support">Aegis returns BLOCK, WAIT, or EXECUTE with proof.</p>
+        <p class="hero__support">Call Aegis before your agent acts.</p>
+        <p class="hero__outcome">One request. One decision. Proof your agent can inspect.</p>
+        <p class="hero__contract">Aegis returns BLOCK, WAIT, or EXECUTE with proof.</p>
         <p class="hero__boundary">Aegis checks risk before execution. It never executes, signs, swaps, or broadcasts.</p>
         <div class="hero__actions">
           <a class="button button--primary" href="#risk-check">Run a risk check</a>
@@ -84,8 +86,15 @@
             <div><h3>Requirements JSON</h3><p>Chain-agnostic risk input</p></div>
             <button class="text-button" id="reset-risk" type="button">Reset sample</button>
           </div>
+          <fieldset class="scenario-picker" aria-describedby="scenario-note">
+            <legend>Choose a local demo scenario</legend>
+            <button class="scenario-option scenario-option--execute" type="button" data-scenario="execute" aria-pressed="true"><strong>EXECUTE</strong><span>Complete, low-risk evidence</span></button>
+            <button class="scenario-option scenario-option--wait" type="button" data-scenario="wait" aria-pressed="false"><strong>WAIT</strong><span>Elevated volatility</span></button>
+            <button class="scenario-option scenario-option--block" type="button" data-scenario="block" aria-pressed="false"><strong>BLOCK</strong><span>Critical volatility</span></button>
+          </fieldset>
+          <p class="scenario-note" id="scenario-note">Selected scenario changes the editable input only. Submit to receive the actual local oracle decision.</p>
           <label class="sr-only" for="risk-request">Risk check request JSON</label>
-          <textarea id="risk-request" class="json-input" spellcheck="false" aria-describedby="risk-error"></textarea>
+          <textarea id="risk-request" class="json-input" spellcheck="false" aria-describedby="scenario-note risk-error"></textarea>
           <p class="field-error" id="risk-error" role="alert"></p>
           <button class="button button--primary" id="run-risk" type="submit">Run risk check</button>
         </form>
@@ -105,7 +114,7 @@
           <div class="result-group"><h4>Risk factors</h4><div id="risk-factors" class="factor-list"><p class="muted">No response yet.</p></div></div>
           <div class="result-group"><h4>Suggested action</h4><p id="risk-action" class="suggested-action">—</p></div>
           <div class="proof-panel" aria-label="Risk proof fields">
-            <div class="proof-heading"><h4>Proof</h4><span>Local log attestation · not on-chain proof</span></div>
+            <div class="proof-heading"><h4>Proof</h4><span>Local log attestation · not on-chain proof · Full values remain available to copy.</span></div>
             <dl>
               <div><dt>request_hash</dt><dd><code id="risk-request-hash">—</code><button class="copy-button" type="button" data-copy="risk-request-hash">Copy</button></dd></div>
               <div><dt>response_hash</dt><dd><code id="risk-response-hash">—</code><button class="copy-button" type="button" data-copy="risk-response-hash">Copy</button></dd></div>
@@ -127,13 +136,19 @@
       </div>
       <div class="split-layout">
         <div class="open-copy">
-          <p>A mock requester agent asks Aegis to evaluate the JSON currently in the Risk Check Console.</p>
+          <p>Any caller agent can compose Aegis before its own controlled action. The current editable risk request is wrapped in the existing A2A contract.</p>
+          <ol class="composition-flow" aria-label="A2A composition flow">
+            <li><strong>Caller agent</strong><span>Sends a proposed action and market evidence.</span></li>
+            <li><strong>Aegis Risk Check</strong><span>Applies deterministic guards through the existing API.</span></li>
+            <li><strong>Decision + proof</strong><span>Returns BLOCK, WAIT, or EXECUTE with reasons and hashes.</span></li>
+            <li><strong>Caller-controlled branch</strong><span>The caller refuses, pauses, or continues its own workflow.</span></li>
+          </ol>
           <ul class="mapping-list">
             <li><span class="decision-dot decision-dot--block"></span><strong>BLOCK</strong><span>simulated execution is refused</span></li>
             <li><span class="decision-dot decision-dot--wait"></span><strong>WAIT</strong><span>simulated execution is delayed</span></li>
             <li><span class="decision-dot decision-dot--execute"></span><strong>EXECUTE</strong><span>simulated execution only</span></li>
           </ul>
-          <button class="button button--primary" id="run-a2a" type="button">Run mock A2A check</button>
+          <button class="button button--primary" id="run-a2a" type="button">Run local A2A check</button>
         </div>
         <article class="console-panel compact-result" aria-live="polite" aria-busy="false" id="a2a-result">
           <div class="panel-header"><div><h3>Requester result</h3><p>Local simulation only</p></div><span class="status-badge" id="a2a-status">READY</span></div>
@@ -191,8 +206,13 @@
         <p>CAP-ready gated runtime; real payment, delivery, settlement, and commercial readiness are not claimed yet.</p>
       </div>
       <div class="readiness__details">
-        <dl class="key-values">
-          <div><dt>Pilot price</dt><dd>0.12 USDC pilot</dd></div>
+        <div class="readiness-matrix">
+          <article class="readiness-state readiness-state--available"><h3>Available now</h3><p>Risk-check API, A2A mock contract, decisions, reasons, and hash-linked local proof.</p><code>CAP_MODE=mock</code></article>
+          <article class="readiness-state readiness-state--gated"><h3>Gated / manual</h3><p>Any future one-event observation requires separate approval and existing safety gates.</p><code>real_cap_ready=false</code></article>
+          <article class="readiness-state"><h3>Not claimed</h3><p>No real payment, escrow, delivery, settlement, or commercial readiness.</p><code>live_execution_authorized=false</code><code>mutating_methods_called=false</code></article>
+        </div>
+        <dl class="key-values readiness-meta">
+          <div><dt>Pilot price positioning</dt><dd>0.12 USDC pilot</dd></div>
           <div><dt>Target track</dt><dd>Data &amp; Verification Agents</dd></div>
           <div><dt>Target track</dt><dd>DeFi / On-chain Ops Agents</dd></div>
           <div><dt>Next approved step</dt><dd>One manual-review real negotiation observation only</dd></div>
@@ -215,14 +235,22 @@
 curl http://127.0.0.1:8000/cap/status</pre></article>
         <article class="code-card"><div><h3>Risk check</h3><button class="copy-button" type="button" data-copy="curl-risk">Copy</button></div><pre id="curl-risk">curl -X POST http://127.0.0.1:8000/risk-check \
   -H "Content-Type: application/json" \
-  --data @risk-request.json</pre></article>
+  --data '{"token":"BNB","chain":"bsc","intended_action":"buy","size_usd":100,"market_signal":{"price_change_24h":3.4,"volume_change_24h":8.1,"liquidity_usd":500000,"volatility_24h":2,"slippage_bps":40}}'</pre></article>
         <article class="code-card"><div><h3>Mock A2A</h3><button class="copy-button" type="button" data-copy="curl-a2a">Copy</button></div><pre id="curl-a2a">curl -X POST http://127.0.0.1:8000/a2a/mock-order \
   -H "Content-Type: application/json" \
-  --data @mock-order.json</pre></article>
+  --data '{"buyer_agent_id":"builder-agent","requested_action":{"token":"BNB","chain":"bsc","intended_action":"buy","size_usd":100,"market_signal":{"liquidity_usd":500000,"volatility_24h":2,"slippage_bps":40}}}'</pre></article>
         <article class="code-card"><div><h3>Local order &amp; proof</h3><button class="copy-button" type="button" data-copy="curl-order">Copy</button></div><pre id="curl-order">curl -X POST http://127.0.0.1:8000/orders -H "Content-Type: application/json" --data @order.json
 curl http://127.0.0.1:8000/orders/{order_id}
 curl http://127.0.0.1:8000/proof/{proof_id}</pre></article>
       </div>
+      <article class="response-contract">
+        <h3>Branch on the decision</h3>
+        <pre>BLOCK   → refuse the proposed action
+WAIT    → pause for evidence or manual review
+EXECUTE → favorable risk posture; caller controls any later action
+
+Aegis never executes or authorizes a transaction.</pre>
+      </article>
       <article class="response-contract">
         <h3>Expected risk response shape</h3>
         <pre>{

@@ -121,6 +121,95 @@ def test_console_styles_follow_design_contract_semantic_colors() -> None:
     assert ".request-state--error" in stylesheet
 
 
+def test_console_explains_buyer_and_a2a_workflows() -> None:
+    page = unescape(client.get("/").text)
+
+    for value in (
+        "Call Aegis before your agent acts.",
+        "One request. One decision. Proof your agent can inspect.",
+        "Caller agent",
+        "Aegis Risk Check",
+        "Decision + proof",
+        "Caller-controlled branch",
+    ):
+        assert value in page
+
+
+def test_console_exposes_three_local_risk_scenario_presets() -> None:
+    page = client.get("/").text
+    script = client.get("/static/app.js").text
+
+    for scenario in ("execute", "wait", "block"):
+        assert f'data-scenario="{scenario}"' in page
+
+    assert "RISK_SCENARIOS" in script
+    assert 'querySelectorAll("[data-scenario]")' in script
+    assert 'setAttribute("aria-pressed"' in script
+    assert "Selected scenario changes the editable input only" in page
+
+
+def test_demo_scenario_payloads_are_deterministic() -> None:
+    base_request = {
+        "token": "BNB",
+        "chain": "bsc",
+        "intended_action": "buy",
+        "size_usd": 100,
+        "market_signal": {
+            "price_change_24h": 3.4,
+            "volume_change_24h": 8.1,
+            "liquidity_usd": 500_000,
+            "slippage_bps": 40,
+            "gas_level": "medium",
+        },
+        "portfolio_context": {
+            "current_exposure_usd": 250,
+            "max_position_usd": 1_000,
+        },
+    }
+
+    for expected, volatility in (("EXECUTE", 2), ("WAIT", 8), ("BLOCK", 12)):
+        payload = {
+            **base_request,
+            "market_signal": {
+                **base_request["market_signal"],
+                "volatility_24h": volatility,
+            },
+        }
+        response = client.post("/risk-check", json=payload)
+
+        assert response.status_code == 200
+        assert response.json()["decision"] == expected
+
+
+def test_proof_hashes_remain_exact_when_visually_shortened() -> None:
+    page = client.get("/").text
+    script = client.get("/static/app.js").text
+
+    assert "Full values remain available to copy." in page
+    assert "function setCopyValue" in script
+    assert "source.dataset.fullValue || source.textContent" in script
+    assert 'button.setAttribute("aria-label"' in script
+
+
+def test_readiness_matrix_and_examples_remain_honest_and_self_contained() -> None:
+    page = unescape(client.get("/").text)
+
+    for value in (
+        "Available now",
+        "Gated / manual",
+        "Not claimed",
+        "Pilot price positioning",
+        "CAP_MODE=mock",
+        "real_cap_ready=false",
+        "live_execution_authorized=false",
+        "mutating_methods_called=false",
+        "Branch on the decision",
+    ):
+        assert value in page
+
+    assert "@risk-request.json" not in page
+    assert "@mock-order.json" not in page
+
 def test_existing_health_risk_and_cap_status_routes_remain_available(
     monkeypatch,
 ) -> None:

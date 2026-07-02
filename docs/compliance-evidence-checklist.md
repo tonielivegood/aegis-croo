@@ -1,7 +1,8 @@
 # Aegis Compliance and Evidence Checklist
 
-Date: 2026-07-02
-Scope: Step 9-B documentation and marketplace/submission readiness
+Date: 2026-07-03
+Scope: Step 9-C official source verification and submission readiness
+
 Product boundary: Aegis is a pre-trade risk oracle, risk-check API, DeFAI
 safety agent, and A2A risk guard. Aegis checks risk before execution. Aegis
 does not execute. `CAP_MODE=mock` is the default; `real_cap_ready=false`,
@@ -10,6 +11,17 @@ The 0.12 USDC pilot price is provisional. Real CAP payment, escrow, delivery,
 settlement, and commercial readiness are not claimed. No owner-approved root
 license exists, so license selection remains pending owner approval.
 
+## Evidence discipline
+
+- External requirements use an official source URL, an access date, and a
+  bounded evidence note.
+- A page proving that a platform or protocol exists does not prove that Aegis
+  is listed, online, paid, delivered, settled, or commercially ready.
+- Public counts and page contents are point-in-time observations.
+- Unavailable official forms, rules, deadlines, and taxonomies remain
+  `pending` or `unknown`; third-party summaries are not final evidence.
+- Internal evidence cites repository files at baseline
+  `55acfb14087f08236b40ca0250579567bdecb7eb`.
 
 ## Status definitions
 
@@ -23,55 +35,70 @@ recording evidence. A local draft is not evidence of external publication.
 
 ## Checklist
 
-| Mandatory or review item | Status | Evidence | Official source URL placeholder | Access date | Owner/action | Notes |
+| Mandatory or review item | Status | Evidence | Source URL | Access date | Owner/action | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| Official CROO protocol model | pass | CAP page describes provider capability, pricing, SLA, schema, proof, and lifecycle | https://cap.croo.network/ | 2026-07-02 | Submission lead: retain dated capture | Does not prove Aegis integration or listing |
-| Exact CROO listing requirements | unknown | No authoritative current form captured | `[VERIFY_OFFICIAL_CROO_LISTING_REQUIREMENTS_URL]` | ? | Store operator: inspect live form | Do not infer required fields from this draft |
-| Official DoraHacks program and deadline | unknown | No authoritative program page or deadline capture | `[VERIFY_OFFICIAL_DORAHACKS_PROGRAM_URL]` | ? | Submission lead: verify deadline and timezone | Third-party summaries are not accepted evidence |
-| Repository visibility | unknown | Local Git checkout only | `[VERIFY_PUBLIC_REPO_URL]` | ? | Repo admin: test anonymous access | Review history and artifacts for secrets first |
-| License | missing | No owner-approved root license | `[APPROVED_LICENSE_URL]` | ? | Owner: select license explicitly | No agent should choose it |
-| Setup reproducibility | pending | README and Step 8-C commands documented | `[SETUP_EVIDENCE]` | ? | Maintainer: run clean-environment setup later | Current pass does not start the app |
-| Product-first README | pass | `README.md` rewritten and checked in Step 9-B | `[README_COMMIT_URL]` | 2026-07-03 | Maintainer: retain commit evidence | Product positioning and boundaries reviewed |
-| Endpoint documentation | pass | README table mapped to `apps/api/main.py` and route modules | `[SCHEMA_EVIDENCE]` | 2026-07-02 | Maintainer: recheck after API changes | Covers all current public routes |
-| Request and response schemas | pass | README and Store draft mapped to Pydantic models | `[SCHEMA_EVIDENCE]` | 2026-07-02 | Maintainer: retain source mapping | Optional nested-field constraints documented |
-| Web Console | pass | `apps/web/index.html`, `apps/web/app.js`, and existing console tests | `[WEB_CONSOLE_EVIDENCE]` | 2026-07-02 | Maintainer: run cheap console test | Local URL only; not a public deployment |
-| CROO Store listing draft | pass | `docs/croo-store-listing-draft.md` | `[STORE_DRAFT_COMMIT_URL]` | 2026-07-02 | Product lead: review copy | Draft does not prove publication |
-| Published CROO Store listing | missing | No visible Aegis listing captured | `[VERIFY_CROO_STORE_URL]` | ? | Store operator: publish after rule review | Do not claim online or accepting orders |
-| CAP/CROO integration status | pass | `docs/aegis-cap-truth-table.md`, `GET /cap/status`, guarded runtime | `[CAP_STATUS_EVIDENCE]` | 2026-07-02 | Maintainer: preserve mock/gated wording | `CAP_MODE=mock`; `real_cap_ready=false`; `live_execution_authorized=false`; `mutating_methods_called=false` |
-| A2A proof/order flow | pass | Local routes, schemas, Web Console, and existing tests | `[A2A_EVIDENCE]` | 2026-07-02 | Maintainer: retain local/mock qualifier | In-memory evidence, not on-chain proof |
-| Pilot price and draft service window | pass | 0.12 USDC and five-minute draft consistently documented | `[STORE_DRAFT_COMMIT_URL]` | 2026-07-02 | Product lead: approve before publication | Not payment evidence or production SLA |
-| Video walkthrough | missing | No verified public video URL | `[VERIFY_VIDEO_URL]` | ? | Presentation lead: record and review | Use the Step 8-C under-five-minute sequence |
-| DoraHacks BUIDL fields | unknown | Draft content exists; official form not captured | `[VERIFY_OFFICIAL_DORAHACKS_PROGRAM_URL]` | ? | Submission lead: map live form fields | Do not call draft headings mandatory |
-| DoraHacks submission draft | pass | `docs/dorahacks-submission-draft.md` | `[DORAHACKS_DRAFT_COMMIT_URL]` | 2026-07-02 | Submission lead: review after official-source capture | Not a submitted BUIDL |
-| Claim-safety scan | pass | Contextual text scan across the four Step 9-B docs | `[CLAIM_SCAN_EVIDENCE]` | 2026-07-03 | Safety reviewer: retain command output | Matches occur only in explicit negative boundaries |
-| Secrets check | pending | No secret values intentionally added | `[SECRET_SCAN_EVIDENCE]` | ? | Security reviewer: scan changed artifacts | Never print real credentials during review |
-| No wallet/signing/swap/transaction/broadcast path | pass | Runtime and UI source review; documentation states absence | `[CAPABILITY_SCAN_EVIDENCE]` | 2026-07-02 | Safety reviewer: confirm runtime diff is zero | Words may appear only in explicit boundaries |
-| No live-trading path | pass | Runtime source review and zero-runtime-change requirement | `[CAPABILITY_SCAN_EVIDENCE]` | 2026-07-02 | Safety reviewer: confirm runtime diff is zero | No claim of live operation |
-| No profit or guaranteed-safety claim | pass | Contextual scan found only explicit negative boundaries | `[CLAIM_SCAN_EVIDENCE]` | 2026-07-03 | Safety reviewer: repeat before publication | No positive claim found |
-| No fake real CAP payment/escrow/delivery/settlement claim | pass | Drafts distinguish local/mock from pending real lifecycle | `[CLAIM_SCAN_EVIDENCE]` | 2026-07-03 | Safety reviewer: repeat before publication | Negative disclaimers are expected |
-| Runtime code unchanged | pass | Git status lists only the four intended docs | `[GIT_DIFF_EVIDENCE]` | 2026-07-03 | Maintainer: retain status evidence | Runtime changes: zero |
-| Tests unchanged unless documentation checks require it | pass | Git status lists only the four intended docs | `[GIT_DIFF_EVIDENCE]` | 2026-07-03 | Maintainer: retain status evidence | Test changes: zero; no pytest run required |
+| Official CROO CAP model | pass | Official CAP page describes provider capability listing with pricing, SLA, and acceptance schema; a verification-first Negotiate-Lock-Deliver-Clear lifecycle; and execution remaining in the provider runtime | https://cap.croo.network/ | 2026-07-03 | Submission lead: retain dated capture | Supports the protocol model, not Aegis readiness or a completed lifecycle |
+| Official CROO architecture context | pass | Official docs describe CROO as infrastructure for agent identity, coordination, settlement, reputation, and provenance | https://docs.croo.network/ | 2026-07-03 | Submission lead: retain dated capture | General architecture only; not listing or submission rules |
+| CROO Agent Store surface | pass | Official Store page exposes the Agent Store, agent/service discovery copy, and a Register Agent entry point | https://agent.croo.network/ | 2026-07-03 | Store operator: retain dated capture | Does not disclose the complete registration form or prove Aegis is listed |
+| Exact CROO listing requirements | unknown | Public Store page did not expose authoritative field limits, category taxonomy, publication rules, or refund requirements | https://agent.croo.network/ | 2026-07-03 | Store operator: verify the current official registration form | Keep `[VERIFY_OFFICIAL_CROO_LISTING_REQUIREMENTS_URL]` unresolved |
+| Published Aegis Store listing | missing | Official Store page reported zero agents at access time and displayed no Aegis listing | https://agent.croo.network/ | 2026-07-03 | Store operator: publish only after requirement review | Point-in-time observation; do not claim online or accepting-orders status |
+| Official CROO SDK organization | pass | Official CAP page links to the public CROO Network GitHub organization, which exposes public Node, Go, Python, and contract repositories | https://github.com/CROO-Network | 2026-07-03 | Maintainer: use only for official SDK/protocol reference | Does not prove Aegis repository visibility or integration |
+| Official DoraHacks announcement of CROO event | pass | DoraHacks-branded announcement lists the CROO Agent Hackathon and advertises a June 9-July 11, 2026 event range | https://www.linkedin.com/pulse/hackathon-newsletter-june-2026-ii-dorahacks-dorahacks-r4izc | 2026-07-03 | Submission lead: retain dated capture | Announcement evidence only; not the authoritative submission form |
+| Official DoraHacks program page | unknown | No accessible authoritative CROO program/rules page was captured from the available official DoraHacks web surface | `[VERIFY_OFFICIAL_DORAHACKS_PROGRAM_URL]` | not verified | Submission lead: open and archive the live official program page | Do not substitute third-party event summaries |
+| Submission deadline and timezone | unknown | Official announcement provides an event range but no authoritative submission cutoff time or timezone | `[VERIFY_DORAHACKS_DEADLINE_AND_TIMEZONE]` | not verified | Submission lead: capture the official deadline and timezone | Do not infer a cutoff from the advertised event range |
+| Mandatory DoraHacks BUIDL fields | unknown | No authoritative current BUIDL submission form was captured | `[VERIFY_OFFICIAL_DORAHACKS_PROGRAM_URL]` | not verified | Submission lead: map the live form fields | Draft headings are not asserted as mandatory fields |
+| Official judging rubric | unknown | No authoritative current CROO judging rubric was captured | `[VERIFY_OFFICIAL_DORAHACKS_PROGRAM_URL]` | not verified | Submission lead: capture the official rubric | Current mapping remains an internal proposal |
+| Official track taxonomy | unknown | No authoritative selectable track list was captured | `[VERIFY_OFFICIAL_DORAHACKS_PROGRAM_URL]` | not verified | Submission lead: capture the live taxonomy | Current track names remain recommendations |
+| Repository visibility | unknown | Local checkout is available, but no verified anonymous public Aegis repository URL was established | `[VERIFY_PUBLIC_REPO_URL]` | not verified | Repo admin: test anonymous access after a secret/history review | Search absence is not proof that a repository is private |
+| License | missing | No root `LICENSE*` or `COPYING*` artifact exists at the verified baseline | repository baseline | 2026-07-03 | Owner: select a license explicitly | No agent should choose or infer a license |
+| Setup reproducibility | pending | README and Step 8-C commands are documented, but Step 9-C does not start the app or run setup validation | `README.md`; `docs/operations/step8c-product-operation-and-marketplace-readiness.md` | 2026-07-03 | Maintainer: capture a separately approved clean-environment transcript | Documentation is not execution evidence |
+| Product-first README completeness | pass | README includes positioning, quickstart, Web Console URL, routes, examples, proof semantics, A2A flow, order/proof flow, CAP boundary, verification, safety, pricing, and license status | `README.md` | 2026-07-03 | Maintainer: recheck after documentation changes | Internal repository evidence |
+| Endpoint documentation | pass | README documents the current root, health, risk, A2A mock, local order/proof, CAP status, and local/mock CAP order routes | `README.md`; `apps/api/main.py`; `apps/api/routes/` | 2026-07-03 | Maintainer: recheck after API changes | Source-mapped internal evidence |
+| Request and response schemas | pass | README and Store draft document risk inputs, decisions, factors, advice, and direct/local proof fields | `README.md`; `docs/croo-store-listing-draft.md`; `src/aegis_croo/schemas/` | 2026-07-03 | Maintainer: retain source mapping | Internal evidence; proof is local, not on-chain |
+| Web Console availability | pass | Static console source and route wiring exist in the repository | `apps/web/index.html`; `apps/web/app.js`; `apps/api/main.py` | 2026-07-03 | Maintainer: validate separately before public release | Local implementation evidence only; app not started in Step 9-C |
+| CROO Store listing draft | pass | Versioned draft contains buyer copy, schemas, proof fields, provisional price, draft service window, A2A workflow, and publication gates | `docs/croo-store-listing-draft.md` | 2026-07-03 | Product lead: review after official form capture | Draft does not prove publication |
+| CAP/CROO integration status | pass | Truth table and status documentation preserve mock/gated posture | `docs/aegis-cap-truth-table.md`; `README.md` | 2026-07-03 | Maintainer: preserve mock/gated wording | `CAP_MODE=mock`; `real_cap_ready=false`; no real lifecycle claim |
+| A2A proof/order flow | pass | README and runbook describe caller-controlled branching and in-memory order/proof retrieval | `README.md`; `docs/operations/step8c-product-operation-and-marketplace-readiness.md` | 2026-07-03 | Maintainer: retain local/mock qualifier | Local log attestation, not on-chain proof |
+| Pilot price and draft service window | pass | Documentation consistently labels 0.12 USDC and five minutes as provisional draft positioning | `README.md`; `docs/croo-store-listing-draft.md` | 2026-07-03 | Product lead: approve before publication | Not payment evidence or a production SLA |
+| Video walkthrough | missing | No verified public video URL exists in the package | `[VERIFY_VIDEO_URL]` | not verified | Presentation lead: record and review later | Use the bounded Step 8-C walkthrough |
+| DoraHacks submission draft | pass | Draft separates reusable submission copy from unresolved official requirements and links | `docs/dorahacks-submission-draft.md` | 2026-07-03 | Submission lead: reconcile with official form | Not a submitted BUIDL |
+| Claim-safety scan | pass | Contextual scan across README, compliance, Store, and DoraHacks docs | `[CLAIM_SCAN_EVIDENCE]` | 2026-07-03 | Safety reviewer: retain command output | Matches occur only in explicit negative or do-not-claim contexts |
+| Secrets check | pending | No secret value was intentionally read or added in Step 9-C | `[SECRET_SCAN_EVIDENCE]` | not verified | Security reviewer: perform a separately approved repository/history scan | Do not print secret values |
+| No wallet/signing/swap/transaction/broadcast path | pass | README and runbook explicitly state the absence of these capabilities | `README.md`; `docs/operations/step8c-product-operation-and-marketplace-readiness.md` | 2026-07-03 | Safety reviewer: repeat after runtime changes | Documentation evidence; Step 9-C changes docs only |
+| No live-trading path | pass | README and runbook explicitly state that no live-trading path exists | `README.md`; `docs/operations/step8c-product-operation-and-marketplace-readiness.md` | 2026-07-03 | Safety reviewer: repeat after runtime changes | No live operation claim |
+| No profit or guaranteed-safety claim | pass | Contextual scan found only explicit negative safety boundaries | `[CLAIM_SCAN_EVIDENCE]` | 2026-07-03 | Safety reviewer: repeat before publication | No positive claim found |
+| No fake real CAP payment/escrow/delivery/settlement claim | pass | Contextual scan found only explicit negative safety boundaries | `[CLAIM_SCAN_EVIDENCE]` | 2026-07-03 | Safety reviewer: repeat before publication | No positive real-lifecycle claim found |
+| Runtime code unchanged | pass | Git diff lists only `docs/compliance-evidence-checklist.md` | `[GIT_DIFF_EVIDENCE]` | 2026-07-03 | Maintainer: retain status evidence | Runtime changes: zero |
+| Tests unchanged | pass | Git diff lists only `docs/compliance-evidence-checklist.md` | `[GIT_DIFF_EVIDENCE]` | 2026-07-03 | Maintainer: retain status evidence | Test changes: zero |
 | `git diff --check` | pass | Command exited zero before staging | `[DIFF_CHECK_EVIDENCE]` | 2026-07-03 | Maintainer: repeat against staged diff | Whitespace check passed |
-| Final commit | pass | This checklist is included in the Step 9-B documentation commit | `[STEP_9B_COMMIT_URL]` | 2026-07-03 | Maintainer: attach remote URL if later published | Branch retained locally; do not push |
+| Step 9-C commit | pass | This checklist is included in the Step 9-C documentation commit | `[STEP_9C_COMMIT_URL]` | 2026-07-03 | Maintainer: attach a remote URL only if later pushed | Do not push |
 
 ## Official-source record
 
-| Source | What it supports | What it does not support |
-| --- | --- | --- |
-| https://cap.croo.network/ | General CAP positioning, provider capability listing, pricing/SLA/schema language, proof, and lifecycle | Aegis readiness, a completed Aegis lifecycle, exact Store form requirements |
-| https://agent.croo.network/ | Existence of the official Agent Store surface | Aegis publication, category choices, accepting-orders status |
-| https://docs.croo.network/ | General CROO architecture context | Exact Aegis submission or listing state |
-| `[VERIFY_OFFICIAL_DORAHACKS_PROGRAM_URL]` | Pending | Until verified, no deadline, field, track, or rubric assertion |
+| Source | Verified evidence | Explicit limitation | Access date |
+| --- | --- | --- | --- |
+| https://cap.croo.network/ | CAP standardizes agent commerce; provider capabilities include pricing, SLA, and acceptance schema; delivery uses proof; the lifecycle is Negotiate-Lock-Deliver-Clear; execution remains in the provider runtime | Does not prove Aegis listing, connectivity, payment, delivery, settlement, or commercial readiness | 2026-07-03 |
+| https://docs.croo.network/ | Official CROO architecture context covers agent identity, coordination, settlement, reputation, and provenance | Landing documentation does not define the Aegis listing or DoraHacks submission requirements | 2026-07-03 |
+| https://agent.croo.network/ | Official Agent Store surface and Register Agent entry point exist; the public page reported zero agents at access time | Does not expose complete listing rules and does not prove Aegis is registered or accepting orders | 2026-07-03 |
+| https://github.com/CROO-Network | Official organization exposes public SDK and protocol repositories | Does not prove Aegis repository visibility or completed CAP integration | 2026-07-03 |
+| https://www.linkedin.com/pulse/hackathon-newsletter-june-2026-ii-dorahacks-dorahacks-r4izc | DoraHacks-branded announcement includes the CROO Agent Hackathon and an advertised June 9-July 11, 2026 event range | Does not provide an authoritative submission deadline/timezone, BUIDL form, rubric, or track taxonomy | 2026-07-03 |
+| `[VERIFY_OFFICIAL_DORAHACKS_PROGRAM_URL]` | Pending | Until captured, no exact deadline, field, track, or rubric assertion is permitted | not verified |
 
 ## Release claim gate
 
 Before a public submission or listing, all of the following must be true:
 
-- Official requirements and deadlines have dated source evidence.
+- Official requirements and deadline/timezone have dated source evidence.
 - Repository visibility and license status are resolved.
-- Public links work without privileged access.
+- Public Store, repository, video, and submission links work without privileged access.
 - Setup is reproduced from a clean environment.
 - Schema and endpoint copy matches the release commit.
 - Claim and secret scans are recorded.
 - The Store listing and BUIDL are distinguished from their local drafts.
 - Any real-CAP or commercial claim has separate direct evidence.
+
+## Step 9-C source-verification note
+
+No app was started. No live CAP/CROO API was called. No provider listener,
+negotiation, paid order, payment, escrow, delivery, or settlement was
+performed. Official public pages were reviewed as documentation evidence only.

@@ -117,7 +117,7 @@ Available locally today:
 Adoption path:
 
 1. Verify clean-environment setup and public repository access.
-2. Publish an owner-approved license.
+2. Retain the owner-approved Apache-2.0 license in the root `LICENSE` file.
 3. Verify the current CROO listing form and publish reviewed service copy.
 4. Measure the draft price and service window in a controlled pilot.
 5. Complete separately approved real-CAP readiness work.
@@ -190,7 +190,7 @@ of selectable DoraHacks tracks.
 | Public repository access | unknown | Test anonymously |
 | Aegis Store listing | missing | Publish only after official requirement review |
 | Public video | missing | Record and verify later |
-| Owner-approved license | missing | Owner decision required |
+| Owner-approved license | verified | Apache-2.0; canonical text is present in the root `LICENSE` file |
 | Real paid lifecycle evidence | missing | Not required to be invented; keep claim absent |
 
 ## Submission safety statement

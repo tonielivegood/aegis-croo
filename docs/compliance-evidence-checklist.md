@@ -8,8 +8,9 @@ safety agent, and A2A risk guard. Aegis checks risk before execution. Aegis
 does not execute. `CAP_MODE=mock` is the default; `real_cap_ready=false`,
 `live_execution_authorized=false`, and `mutating_methods_called=false`.
 The 0.12 USDC pilot price is provisional. Real CAP payment, escrow, delivery,
-settlement, and commercial readiness are not claimed. No owner-approved root
-license exists, so license selection remains pending owner approval.
+settlement, and commercial readiness are not claimed. The owner approved the
+Apache License, Version 2.0 (`Apache-2.0`), and the canonical text is present
+in the root `LICENSE` file.
 
 ## Evidence discipline
 
@@ -50,7 +51,7 @@ recording evidence. A local draft is not evidence of external publication.
 | Official judging rubric | unknown | No authoritative current CROO judging rubric was captured | `[VERIFY_OFFICIAL_DORAHACKS_PROGRAM_URL]` | not verified | Submission lead: capture the official rubric | Current mapping remains an internal proposal |
 | Official track taxonomy | unknown | No authoritative selectable track list was captured | `[VERIFY_OFFICIAL_DORAHACKS_PROGRAM_URL]` | not verified | Submission lead: capture the live taxonomy | Current track names remain recommendations |
 | Repository visibility | unknown | Local checkout is available, but no verified anonymous public Aegis repository URL was established | `[VERIFY_PUBLIC_REPO_URL]` | not verified | Repo admin: test anonymous access after a secret/history review | Search absence is not proof that a repository is private |
-| License | missing | No root `LICENSE*` or `COPYING*` artifact exists at the verified baseline | repository baseline | 2026-07-03 | Owner: select a license explicitly | No agent should choose or infer a license |
+| License | pass | Owner explicitly approved Apache License 2.0; the root `LICENSE` contains the canonical Apache-2.0 text | https://www.apache.org/licenses/LICENSE-2.0.txt; `LICENSE` | 2026-07-03 | Maintainer: preserve the approved license artifact and identifier | SPDX identifier: `Apache-2.0`; owner decision recorded 2026-07-03 |
 | Setup reproducibility | pending | README and Step 8-C commands are documented, but Step 9-C does not start the app or run setup validation | `README.md`; `docs/operations/step8c-product-operation-and-marketplace-readiness.md` | 2026-07-03 | Maintainer: capture a separately approved clean-environment transcript | Documentation is not execution evidence |
 | Product-first README completeness | pass | README includes positioning, quickstart, Web Console URL, routes, examples, proof semantics, A2A flow, order/proof flow, CAP boundary, verification, safety, pricing, and license status | `README.md` | 2026-07-03 | Maintainer: recheck after documentation changes | Internal repository evidence |
 | Endpoint documentation | pass | README documents the current root, health, risk, A2A mock, local order/proof, CAP status, and local/mock CAP order routes | `README.md`; `apps/api/main.py`; `apps/api/routes/` | 2026-07-03 | Maintainer: recheck after API changes | Source-mapped internal evidence |

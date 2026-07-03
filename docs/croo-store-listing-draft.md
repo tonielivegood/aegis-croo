@@ -37,8 +37,8 @@ safety agent, and A2A risk guard. Aegis checks risk before execution. Aegis
 does not execute. `CAP_MODE=mock` is the default; `real_cap_ready=false`,
 `live_execution_authorized=false`, and `mutating_methods_called=false`.
 The 0.12 USDC pilot price is provisional. Real CAP payment, escrow, delivery,
-settlement, and commercial readiness are not claimed. License selection
-remains pending owner approval.
+settlement, and commercial readiness are not claimed. The owner-approved
+project license is Apache-2.0; the canonical text is in the root `LICENSE`.
 the current Store form exposes those exact choices.
 
 ## Long description
@@ -225,7 +225,7 @@ Before copying this draft into a live listing:
 - [ ] Verify the current official listing form and field limits.
 - [ ] Verify the official category/taxonomy choices.
 - [ ] Confirm anonymous public repository access.
-- [ ] Obtain owner approval for a license and add it separately.
+- [x] Retain the owner-approved Apache-2.0 license in the root `LICENSE` file.
 - [ ] Replace the Store URL placeholder with a visible Aegis listing.
 - [ ] Verify price, cancellation, dispute, and refund rules.
 - [ ] Re-run setup, schema, claim-safety, and secret checks.

@@ -269,8 +269,7 @@ evidence for a release or submission candidate.
 - [DoraHacks submission draft](docs/dorahacks-submission-draft.md)
 - [Compliance and evidence checklist](docs/compliance-evidence-checklist.md)
 
-## License status
+## License
 
-**Pending owner approval.** No owner-approved root license is present. Do not
-infer reuse rights or add a license until the repository owner explicitly
-selects one.
+Aegis CROO is licensed under the Apache License, Version 2.0
+(`Apache-2.0`). See [LICENSE](LICENSE) for the complete terms.

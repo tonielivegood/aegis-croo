@@ -52,7 +52,7 @@ mutating_methods_called=false
 Prerequisites: Python 3.11 or newer, Git, and PowerShell.
 
 ```powershell
-git clone <PUBLIC_REPOSITORY_URL>
+git clone https://github.com/tonielivegood/aegis-croo
 Set-Location Aegis-CROO
 py -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
@@ -60,9 +60,8 @@ $env:CAP_MODE = "mock"
 .\.venv\Scripts\python.exe -m uvicorn apps.api.main:app --host 127.0.0.1 --port 8000
 ```
 
-The public repository URL is intentionally a placeholder until anonymous
-public access is verified. If the repository is already checked out, start at
-`Set-Location` with its local path.
+The public repository URL above has been verified for anonymous access. If the
+repository is already checked out, start at `Set-Location` with its local path.
 
 Open the local Web Console at <http://127.0.0.1:8000/>. This starts only the
 FastAPI application. It does not start a CROO provider listener, negotiation,

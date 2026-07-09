@@ -18,6 +18,13 @@ CAP_PROVIDER_RUNTIME_TIMEOUT_SECONDS = 5.0
 CAP_PROVIDER_RUNTIME_CLOSE_TIMEOUT_SECONDS = 1.0
 CAP_PROVIDER_RUNTIME_MAX_EVENTS = 2
 CAP_PROVIDER_PRESENCE_ENABLED = False
+CAP_REAL_LIFECYCLE_ENABLED = False
+CAP_ACCEPT_NEGOTIATION_ENABLED = False
+CAP_DELIVER_ORDER_ENABLED = False
+CAP_REQUESTER_CANARY_ENABLED = False
+CAP_REQUESTER_PAY_ENABLED = False
+LIFECYCLE_CANARY_MAX_NEGOTIATIONS = 1
+LIFECYCLE_CANARY_MAX_ORDERS = 1
 DEFAULT_PROVIDER_AGENT_ID = "aegis-risk-oracle"
 
 
@@ -108,6 +115,87 @@ def _configured_bounded_int(name: str, default: int) -> int:
 def configured_provider_presence_enabled() -> bool:
     return _configured_bool(
         "CAP_PROVIDER_PRESENCE_ENABLED", CAP_PROVIDER_PRESENCE_ENABLED
+    )
+
+
+def configured_real_lifecycle_enabled() -> bool:
+    return _configured_bool("CAP_REAL_LIFECYCLE_ENABLED", CAP_REAL_LIFECYCLE_ENABLED)
+
+
+def configured_accept_negotiation_enabled() -> bool:
+    return _configured_bool(
+        "CAP_ACCEPT_NEGOTIATION_ENABLED", CAP_ACCEPT_NEGOTIATION_ENABLED
+    )
+
+
+def configured_deliver_order_enabled() -> bool:
+    return _configured_bool("CAP_DELIVER_ORDER_ENABLED", CAP_DELIVER_ORDER_ENABLED)
+
+
+def configured_requester_canary_enabled() -> bool:
+    return _configured_bool(
+        "CAP_REQUESTER_CANARY_ENABLED", CAP_REQUESTER_CANARY_ENABLED
+    )
+
+
+def configured_requester_pay_enabled() -> bool:
+    return _configured_bool("CAP_REQUESTER_PAY_ENABLED", CAP_REQUESTER_PAY_ENABLED)
+
+
+@dataclass(frozen=True)
+class LifecycleCanaryConfig:
+    """Gates and allowlist for the one-order provider lifecycle canary.
+
+    Every mutation-capable gate defaults to False, and the allowlist values
+    must be explicitly configured; nothing here enables a live connection or
+    call by itself.
+    """
+
+    lifecycle_enabled: bool
+    accept_enabled: bool
+    deliver_enabled: bool
+    expected_service_id: str | None
+    expected_requester_agent_id: str | None
+
+    @property
+    def missing_allowlist(self) -> list[str]:
+        missing: list[str] = []
+        if not self.expected_service_id:
+            missing.append("CROO_SERVICE_ID")
+        if not self.expected_requester_agent_id:
+            missing.append("CROO_EXPECTED_REQUESTER_AGENT_ID")
+        return missing
+
+
+def load_lifecycle_canary_config() -> LifecycleCanaryConfig:
+    return LifecycleCanaryConfig(
+        lifecycle_enabled=configured_real_lifecycle_enabled(),
+        accept_enabled=configured_accept_negotiation_enabled(),
+        deliver_enabled=configured_deliver_order_enabled(),
+        expected_service_id=os.getenv("CROO_SERVICE_ID") or None,
+        expected_requester_agent_id=os.getenv("CROO_EXPECTED_REQUESTER_AGENT_ID")
+        or None,
+    )
+
+
+@dataclass(frozen=True)
+class RequesterCanaryConfig:
+    """Gates for the standalone, Aegis-Core-external requester canary script."""
+
+    canary_enabled: bool
+    pay_enabled: bool
+    expected_provider_service_id: str | None
+
+    @property
+    def missing_allowlist(self) -> list[str]:
+        return [] if self.expected_provider_service_id else ["CROO_SERVICE_ID"]
+
+
+def load_requester_canary_config() -> RequesterCanaryConfig:
+    return RequesterCanaryConfig(
+        canary_enabled=configured_requester_canary_enabled(),
+        pay_enabled=configured_requester_pay_enabled(),
+        expected_provider_service_id=os.getenv("CROO_SERVICE_ID") or None,
     )
 
 

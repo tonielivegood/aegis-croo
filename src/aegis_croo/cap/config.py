@@ -8,6 +8,7 @@ CAP_MODE: CAPMode = "mock"
 CAP_REAL_PROVIDER_ENABLED = False
 CAP_WS_OBSERVE_ONLY_ENABLED = False
 CAP_WS_OBSERVE_TIMEOUT_SECONDS = 5.0
+CAP_WS_OBSERVE_MAX_TIMEOUT_SECONDS = 90.0
 CAP_CONTROLLED_PROVIDER_RUNTIME_ENABLED = False
 CAP_PROVIDER_ACCEPT_ENABLED = False
 CAP_PROVIDER_REJECT_ENABLED = False
@@ -51,9 +52,34 @@ def configured_ws_observe_timeout_seconds() -> float:
         value = float(raw_value)
     except ValueError:
         return CAP_WS_OBSERVE_TIMEOUT_SECONDS
-    if 0 < value <= 60:
+    if 0 < value <= CAP_WS_OBSERVE_MAX_TIMEOUT_SECONDS:
         return value
     return CAP_WS_OBSERVE_TIMEOUT_SECONDS
+
+
+class WSObserveTimeoutTooLargeError(ValueError):
+    pass
+
+
+def require_ws_observe_timeout_within_bounds() -> None:
+    """Raise if an explicitly-set observe timeout exceeds the owner-approved ceiling.
+
+    Non-numeric values are left to ``configured_ws_observe_timeout_seconds``'s
+    existing fail-closed fallback; this only rejects an explicit, parseable,
+    too-large request loudly instead of silently substituting the default.
+    """
+    raw_value = os.getenv("CAP_WS_OBSERVE_TIMEOUT_SECONDS")
+    if raw_value is None:
+        return
+    try:
+        value = float(raw_value)
+    except ValueError:
+        return
+    if value > CAP_WS_OBSERVE_MAX_TIMEOUT_SECONDS:
+        raise WSObserveTimeoutTooLargeError(
+            "CAP_WS_OBSERVE_TIMEOUT_SECONDS must be at most "
+            f"{CAP_WS_OBSERVE_MAX_TIMEOUT_SECONDS:g} seconds."
+        )
 
 
 def _configured_bool(name: str, default: bool) -> bool:

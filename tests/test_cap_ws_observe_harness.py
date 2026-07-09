@@ -4,8 +4,11 @@ from pathlib import Path
 import pytest
 
 from src.aegis_croo.cap.config import (
+    CAP_WS_OBSERVE_MAX_TIMEOUT_SECONDS,
+    WSObserveTimeoutTooLargeError,
     configured_ws_observe_enabled,
     configured_ws_observe_timeout_seconds,
+    require_ws_observe_timeout_within_bounds,
 )
 from src.aegis_croo.cap.ws_observe_harness import (
     ObserveOnlyDisabledError,
@@ -13,6 +16,36 @@ from src.aegis_croo.cap.ws_observe_harness import (
     redact_headers,
     redact_sensitive_text,
 )
+
+
+def test_ceiling_constant_is_ninety_seconds() -> None:
+    assert CAP_WS_OBSERVE_MAX_TIMEOUT_SECONDS == 90.0
+
+
+def test_default_timeout_without_env_override_is_five_seconds(monkeypatch) -> None:
+    monkeypatch.delenv("CAP_WS_OBSERVE_TIMEOUT_SECONDS", raising=False)
+    assert configured_ws_observe_timeout_seconds() == 5.0
+    require_ws_observe_timeout_within_bounds()
+
+
+@pytest.mark.parametrize("value", ["5", "30", "90"])
+def test_explicit_timeout_within_ceiling_is_accepted(monkeypatch, value: str) -> None:
+    monkeypatch.setenv("CAP_WS_OBSERVE_TIMEOUT_SECONDS", value)
+    assert configured_ws_observe_timeout_seconds() == float(value)
+    require_ws_observe_timeout_within_bounds()
+
+
+@pytest.mark.parametrize("value", ["91", "1000000"])
+def test_explicit_timeout_above_ceiling_is_rejected(monkeypatch, value: str) -> None:
+    monkeypatch.setenv("CAP_WS_OBSERVE_TIMEOUT_SECONDS", value)
+    with pytest.raises(WSObserveTimeoutTooLargeError):
+        require_ws_observe_timeout_within_bounds()
+
+
+def test_non_numeric_timeout_uses_existing_fail_closed_default(monkeypatch) -> None:
+    monkeypatch.setenv("CAP_WS_OBSERVE_TIMEOUT_SECONDS", "not-a-number")
+    require_ws_observe_timeout_within_bounds()
+    assert configured_ws_observe_timeout_seconds() == 5.0
 
 
 class FakeStream:

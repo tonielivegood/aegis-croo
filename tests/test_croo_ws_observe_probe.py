@@ -119,6 +119,24 @@ async def test_probe_refuses_when_observe_gate_is_disabled(monkeypatch) -> None:
     assert factory_calls == 0
 
 
+@pytest.mark.anyio
+async def test_probe_refuses_when_timeout_exceeds_owner_approved_ceiling(
+    monkeypatch,
+) -> None:
+    set_probe_env(monkeypatch)
+    monkeypatch.setenv("CAP_WS_OBSERVE_TIMEOUT_SECONDS", "91")
+    factory_calls = 0
+
+    def stream_factory(*_args):
+        nonlocal factory_calls
+        factory_calls += 1
+        return FakeStream()
+
+    with pytest.raises(ProbePreflightError):
+        await run_probe(stream_factory=stream_factory)
+    assert factory_calls == 0
+
+
 def test_probe_log_filter_redacts_key_service_id_and_url() -> None:
     record = logging.LogRecord(
         name="croo",

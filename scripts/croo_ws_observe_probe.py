@@ -17,10 +17,13 @@ if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from src.aegis_croo.cap.config import (
+    CAP_WS_OBSERVE_MAX_TIMEOUT_SECONDS,
+    WSObserveTimeoutTooLargeError,
     configured_cap_mode,
     configured_real_provider_enabled,
     configured_ws_observe_enabled,
     configured_ws_observe_timeout_seconds,
+    require_ws_observe_timeout_within_bounds,
 )
 from src.aegis_croo.cap.ws_observe_harness import (
     ObserveOnlyResult,
@@ -31,7 +34,6 @@ from src.aegis_croo.cap.ws_observe_harness import (
 )
 
 
-MAX_PROBE_SECONDS = 5.0
 StreamFactory = Callable[[str, str], ObserveOnlyStream]
 ProbeStatus = Literal["verified_observe_only", "observe_abort", "failed"]
 
@@ -104,10 +106,16 @@ def _load_probe_config() -> tuple[str, str, str, float]:
             "CAP_WS_OBSERVE_ONLY_ENABLED must be true for the manual probe."
         )
 
+    try:
+        require_ws_observe_timeout_within_bounds()
+    except WSObserveTimeoutTooLargeError as exc:
+        raise ProbePreflightError(str(exc)) from None
+
     timeout_seconds = configured_ws_observe_timeout_seconds()
-    if timeout_seconds > MAX_PROBE_SECONDS:
+    if timeout_seconds > CAP_WS_OBSERVE_MAX_TIMEOUT_SECONDS:
         raise ProbePreflightError(
-            "CAP_WS_OBSERVE_TIMEOUT_SECONDS must be at most 5."
+            "CAP_WS_OBSERVE_TIMEOUT_SECONDS must be at most "
+            f"{CAP_WS_OBSERVE_MAX_TIMEOUT_SECONDS:g}."
         )
 
     required = {

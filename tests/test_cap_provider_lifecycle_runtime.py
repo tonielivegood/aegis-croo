@@ -327,10 +327,11 @@ async def test_paid_order_runs_risk_engine_and_delivers_execute() -> None:
     assert outcome.status == "delivered"
     assert outcome.decision == "EXECUTE"
     assert len(client.deliver_calls) == 1
-    order_id, deliverable_type, deliverable_schema, _ = client.deliver_calls[0]
+    order_id, deliverable_type, deliverable_schema, deliverable_text = client.deliver_calls[0]
     assert order_id == "order-1"
-    assert deliverable_type == "schema"
-    assert json.loads(deliverable_schema)["decision"] == "EXECUTE"
+    assert deliverable_type == "text"
+    assert deliverable_schema == ""
+    assert json.loads(deliverable_text)["decision"] == "EXECUTE"
 
 
 @pytest.mark.anyio
@@ -338,7 +339,7 @@ async def test_paid_order_runs_risk_engine_and_delivers_block() -> None:
     outcome, client = await _accept_then_pay(BLOCK_BUY)
     assert outcome.status == "delivered"
     assert outcome.decision == "BLOCK"
-    assert json.loads(client.deliver_calls[0][2])["decision"] == "BLOCK"
+    assert json.loads(client.deliver_calls[0][3])["decision"] == "BLOCK"
 
 
 @pytest.mark.anyio
@@ -346,7 +347,7 @@ async def test_paid_order_runs_risk_engine_and_delivers_wait() -> None:
     outcome, client = await _accept_then_pay(WAIT_BUY)
     assert outcome.status == "delivered"
     assert outcome.decision == "WAIT"
-    assert json.loads(client.deliver_calls[0][2])["decision"] == "WAIT"
+    assert json.loads(client.deliver_calls[0][3])["decision"] == "WAIT"
 
 
 @pytest.mark.anyio

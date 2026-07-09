@@ -301,7 +301,7 @@ class ProviderLifecycleRuntime:
             return self._stop(
                 reason_code="order_not_from_accepted_negotiation", order_id=order_id
             )
-        if status and status != "paid":
+        if status != "paid":
             return self._stop(reason_code="order_status_not_paid", order_id=order_id)
 
         risk_request = self._state.stored_requirements

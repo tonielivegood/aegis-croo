@@ -350,6 +350,41 @@ async def test_paid_order_runs_risk_engine_and_delivers_wait() -> None:
 
 
 @pytest.mark.anyio
+@pytest.mark.parametrize("order_status", [None, "", "creating", "paying", "rejected"])
+async def test_non_paid_order_status_does_not_deliver(order_status) -> None:
+    """Regression for Gate 3B-B: an empty/falsy or non-"paid" status must
+    fail closed rather than silently skip the paid-status check."""
+    negotiation = FakeNegotiation(
+        service_id=EXPECTED_SERVICE_ID,
+        requester_agent_id=EXPECTED_REQUESTER_AGENT_ID,
+        requirements=json.dumps(SAFE_BUY),
+    )
+    order = FakeOrder(
+        service_id=EXPECTED_SERVICE_ID,
+        requester_agent_id=EXPECTED_REQUESTER_AGENT_ID,
+        negotiation_id="neg-1",
+        status=order_status,
+    )
+    client = FakeClient(negotiation=negotiation, order=order)
+    runtime = ProviderLifecycleRuntime(client=client, gates=make_gates())
+    await runtime.handle_negotiation_created(FakeEvent(negotiation_id="neg-1"))
+
+    outcome = await runtime.handle_order_paid(FakeEvent(order_id="order-1"))
+
+    assert outcome.status == "stopped_locally"
+    assert outcome.reason_code == "order_status_not_paid"
+    assert client.deliver_calls == []
+
+
+@pytest.mark.anyio
+async def test_exact_paid_order_status_does_deliver() -> None:
+    """Companion to the regression above: "paid" (and only "paid") proceeds."""
+    outcome, client = await _accept_then_pay(SAFE_BUY)
+    assert outcome.status == "delivered"
+    assert len(client.deliver_calls) == 1
+
+
+@pytest.mark.anyio
 async def test_duplicate_order_paid_event_does_not_redeliver() -> None:
     negotiation = FakeNegotiation(
         service_id=EXPECTED_SERVICE_ID,
@@ -495,6 +530,34 @@ async def test_disabled_gates_prevent_accept_and_deliver() -> None:
     outcome = await runtime.handle_negotiation_created(FakeEvent(negotiation_id="neg-1"))
     assert outcome.status == "rejected_locally"
     assert outcome.reason_code == "lifecycle_or_accept_gate_disabled"
+    assert client.accept_calls == []
+    assert client.get_negotiation_calls == []
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "gates_overrides",
+    [
+        {"expected_service_id": None},
+        {"expected_requester_agent_id": None},
+        {"expected_service_id": None, "expected_requester_agent_id": None},
+    ],
+)
+async def test_missing_allowlist_fails_closed_at_runtime_level(gates_overrides) -> None:
+    """Regression for Gate 3B-B: the runtime's own defense-in-depth allowlist
+    check (independent of the CLI-level check) must itself fail closed."""
+    negotiation = FakeNegotiation(
+        service_id=EXPECTED_SERVICE_ID,
+        requester_agent_id=EXPECTED_REQUESTER_AGENT_ID,
+        requirements=json.dumps(SAFE_BUY),
+    )
+    client = FakeClient(negotiation=negotiation)
+    runtime = ProviderLifecycleRuntime(client=client, gates=make_gates(**gates_overrides))
+
+    outcome = await runtime.handle_negotiation_created(FakeEvent(negotiation_id="neg-1"))
+
+    assert outcome.status == "rejected_locally"
+    assert outcome.reason_code == "allowlist_not_configured"
     assert client.accept_calls == []
     assert client.get_negotiation_calls == []
 

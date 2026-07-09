@@ -17,6 +17,7 @@ CAP_PROVIDER_DELIVER_ENABLED = False
 CAP_PROVIDER_RUNTIME_TIMEOUT_SECONDS = 5.0
 CAP_PROVIDER_RUNTIME_CLOSE_TIMEOUT_SECONDS = 1.0
 CAP_PROVIDER_RUNTIME_MAX_EVENTS = 2
+CAP_PROVIDER_PRESENCE_ENABLED = False
 DEFAULT_PROVIDER_AGENT_ID = "aegis-risk-oracle"
 
 
@@ -102,6 +103,12 @@ def _configured_bounded_int(name: str, default: int) -> int:
     except ValueError:
         return default
     return value if 0 < value <= 60 else default
+
+
+def configured_provider_presence_enabled() -> bool:
+    return _configured_bool(
+        "CAP_PROVIDER_PRESENCE_ENABLED", CAP_PROVIDER_PRESENCE_ENABLED
+    )
 
 
 @dataclass(frozen=True)

@@ -28,17 +28,65 @@ seller, profit generator, or private-key agent. It has no wallet custody,
 private-key handling, signing, swap, transaction construction, broadcast, or
 live-trading path. It does not promise profit or guaranteed safety.
 
+## Architecture and CROO/CAP integration
+
+```text
+Requester agent                Aegis Core (this repo)              CROO backend
+────────────────                ─────────────────────              ─────────────
+                                 apps/api (FastAPI)
+                                   risk-check, health, Web Console
+                                 src/aegis_croo/oracle + guards
+                                   deterministic BLOCK/WAIT/EXECUTE
+                                 src/aegis_croo/orders
+                                   local ledger + SHA-256 proof
+
+  scripts/croo_requester_canary.py        scripts/croo_provider_presence.py -----> WebSocket (real, live-verified)
+  (separate SDK key, gated,                 always-on, non-mutating, ONLINE
+   never run live in this repo)             reproduced live
+
+                                          scripts/croo_provider_lifecycle.py ---> negotiate/accept/pay/deliver
+                                          src/aegis_croo/cap/provider_lifecycle_   (real SDK calls, offline-tested,
+                                            runtime.py + delivery_mapping.py       never run live in this repo)
+```
+
+Aegis Core (the oracle, guards, and local order/proof ledger) is fully
+local, deterministic, and unaffected by whether any CROO connection exists.
+CROO integration is layered strictly on top of it, split into two
+independently gated pieces:
+
+1. **Provider presence** (`src/aegis_croo/cap/provider_presence_runtime.py`,
+   `scripts/croo_provider_presence.py`) — a non-mutating WebSocket connection
+   that registers no event handler. This is the only piece that has been run
+   against the real CROO backend, and it reproduced the Agent's Dashboard
+   ONLINE status for as long as the connection stayed open.
+2. **Lifecycle wiring** (`src/aegis_croo/cap/provider_lifecycle_runtime.py`,
+   `src/aegis_croo/cap/delivery_mapping.py`, `scripts/croo_provider_lifecycle.py`,
+   `scripts/croo_requester_canary.py`) — narrow, explicitly gated code that can
+   accept one negotiation and deliver one result via the real `croo-sdk`
+   (`accept_negotiation`, `deliver_order`), correlated against a Service ID
+   and requester Agent ID allowlist with in-memory, single-order idempotency.
+   This is fully implemented and covered by fake-SDK tests, but it has never
+   been run against the real CROO backend: no funded, separately-keyed
+   requester Agent exists yet to negotiate and pay for a real order.
+
 ## Current product status
+
+Real means a live call against the actual CROO backend occurred and was
+observed. Offline-tested means the code path is implemented and proven
+against fake SDK clients only, with zero live network calls.
 
 | Capability | Status | Meaning |
 | --- | --- | --- |
-| Risk-check API and Web Console | Available locally | Calls the deterministic local oracle |
+| Risk-check API and Web Console | Real, local | Calls the deterministic local oracle, always live |
+| Provider WebSocket presence (ONLINE) | **Real, live-verified** | A real `connect_websocket()` session against the CROO backend reproduced the Agent's Dashboard status flipping OFFLINE → ONLINE for the duration of the connection, and back to OFFLINE on close |
+| Real CAP lifecycle wiring (negotiate/accept/pay/deliver) | **Implemented, offline-tested only** | Gated code exists to accept a negotiation and deliver a result via the official `croo-sdk`; proven only against fake SDK clients in the test suite, never run against the live CROO backend |
+| Real paid CAP order | **Not completed** | No funded requester Agent exists yet; no negotiation, payment, or delivery has ever been exchanged with the real CROO backend |
 | A2A requester flow | Local mock | Caller branches on advice; no external action occurs |
 | Local order and proof flow | In-memory mock | CAP-shaped contract test; records disappear on restart |
-| CAP adapter | Gated local mock | `CAP_MODE=mock`; no real lifecycle action |
-| Real CROO/CAP operation | Pending and unverified | Not claimed as online, accepting orders, or commercially ready |
+| CAP adapter (`/cap/order`, `/cap/status`) | Gated local mock | `CAP_MODE=mock` by default; real mode only probes SDK client construction, never mutates |
 
-The required safety posture remains:
+The required safety posture remains, unless a separately owner-approved
+canary is explicitly and narrowly enabled for a bounded test:
 
 ```text
 CAP_MODE=mock
@@ -46,6 +94,9 @@ real_cap_ready=false
 live_execution_authorized=false
 mutating_methods_called=false
 ```
+
+Aegis does not claim real payment, escrow, settlement, or production
+readiness anywhere in this document.
 
 ## Quickstart for Windows PowerShell
 
@@ -162,6 +213,47 @@ The hash placeholders above represent deterministic 64-character values
 returned by the running service; they are not fabricated evidence.
 `safe_to_execute` is advice for the caller, never authorization.
 
+### All three decisions, from the same running service
+
+`BLOCK` — negative 24h volume change combined with high volatility:
+
+```json
+{
+  "decision": "BLOCK",
+  "risk_score": 70,
+  "confidence": "high",
+  "market_regime": "volatile_buy",
+  "safe_to_execute": false,
+  "risk_factors": [
+    {"name": "high_volatility", "severity": "medium", "score_impact": 35,
+     "evidence": "24h volatility is 9.0, at or above 7.0."},
+    {"name": "negative_volume_confirmation", "severity": "medium", "score_impact": 35,
+     "evidence": "Buy signal has negative 24h volume change of -10.0%."}
+  ],
+  "suggested_action": "BLOCK this proposed action and reassess the flagged risk evidence."
+}
+```
+
+`WAIT` — missing an important market-signal field (`liquidity_usd`):
+
+```json
+{
+  "decision": "WAIT",
+  "risk_score": 35,
+  "confidence": "low",
+  "market_regime": "missing_data",
+  "safe_to_execute": false,
+  "risk_factors": [
+    {"name": "missing_liquidity", "severity": "medium", "score_impact": 35,
+     "evidence": "Liquidity data is missing from the market signal."}
+  ],
+  "suggested_action": "WAIT for stronger or more complete evidence before proceeding."
+}
+```
+
+All three responses above were captured from a locally running instance of
+this exact repository state; none are hypothetical.
+
 ## Proof and hash semantics
 
 Aegis exposes two related local proof shapes:
@@ -220,14 +312,29 @@ commercial transaction.
 
 ## CAP-ready boundary
 
-The current runtime is CAP-ready only in the narrow sense that local schemas,
-adapter contracts, status reporting, and fail-closed gates exist. The default
-is `CAP_MODE=mock`, and `real_cap_ready` remains `false`.
+The default runtime posture is still `CAP_MODE=mock`, and `real_cap_ready`
+remains `false`. Beyond local schemas and adapter contracts, two real-SDK
+capabilities now exist and are independently gated behind explicit,
+default-`false` environment flags (`CAP_PROVIDER_PRESENCE_ENABLED`,
+`CAP_REAL_LIFECYCLE_ENABLED`, `CAP_ACCEPT_NEGOTIATION_ENABLED`,
+`CAP_DELIVER_ORDER_ENABLED`, `CAP_REQUESTER_CANARY_ENABLED`,
+`CAP_REQUESTER_PAY_ENABLED`):
+
+- **Provider presence is live-verified.** A real, non-mutating WebSocket
+  connection to the CROO backend reproduced the registered Agent's Dashboard
+  status transitioning OFFLINE → ONLINE for the duration of the connection.
+- **Lifecycle wiring exists and is offline-tested, not live-run.** The
+  provider side can accept exactly one negotiation and deliver exactly one
+  result through the real `croo-sdk`, gated by a Service ID and requester
+  Agent ID allowlist with single-order idempotency — proven only against
+  fake SDK clients. No funded, separately-keyed requester Agent has been set
+  up, so no real negotiation, payment, or delivery has occurred.
 
 Aegis does not claim a real CROO listing, accepting-orders status, payment,
 escrow, delivery, settlement, reputation update, paid lifecycle, production
-SLA, or commercial readiness. Real-provider credentials and any future
-approved observation remain outside this documentation package.
+SLA, or commercial readiness. Real-provider credentials remain outside this
+repository in an external secret mechanism and are never printed or
+committed.
 
 See the [CAP readiness truth table](docs/aegis-cap-truth-table.md) for the
 guarded runtime state.
@@ -238,6 +345,13 @@ Run focused API and Web Console checks:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest tests\test_risk_check.py tests\test_a2a_mock_order.py tests\test_orders.py tests\test_cap_adapter.py tests\test_web_console.py -q
+```
+
+Run focused checks for the CAP presence and lifecycle wiring (fake SDK
+clients only, no network):
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests\test_cap_provider_presence_runtime.py tests\test_cap_provider_lifecycle_runtime.py tests\test_cap_delivery_mapping.py tests\test_croo_requester_canary.py -q
 ```
 
 Run the full suite:
@@ -267,6 +381,8 @@ evidence for a release or submission candidate.
 - [CROO Store listing draft](docs/croo-store-listing-draft.md)
 - [DoraHacks submission draft](docs/dorahacks-submission-draft.md)
 - [Compliance and evidence checklist](docs/compliance-evidence-checklist.md)
+- [Owner-verified CROO Dashboard state](docs/owner-verified-croo-dashboard-state-2026-07-04.md)
+- [CAP readiness truth table](docs/aegis-cap-truth-table.md)
 
 ## License
 

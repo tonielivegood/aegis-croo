@@ -63,6 +63,8 @@ preserving a strict non-execution boundary.
 | Mock A2A requester | Maps decisions to `REFUSED`, `DELAYED`, or `SIMULATED_EXECUTION_ONLY` |
 | In-memory order ledger | Exercises a CAP-shaped local order and proof contract |
 | Gated CAP adapter | Defaults to mock and fails closed for unapproved real behavior |
+| Provider presence runtime | Real, non-mutating `croo-sdk` WebSocket connection; live-verified to flip the registered Agent's CROO Dashboard status OFFLINE to ONLINE |
+| Provider lifecycle wiring | Real `croo-sdk` accept/deliver calls, gated and allowlisted; implemented and fake-SDK tested, not yet run against a live paid order |
 | Web Console | Runs deterministic scenarios and displays posture, reasons, and proof |
 
 The local API routes are documented in the product-first README. The runtime
@@ -191,7 +193,9 @@ of selectable DoraHacks tracks.
 | Aegis Store listing | missing | Publish only after official requirement review |
 | Public video | missing | Record and verify later |
 | Owner-approved license | verified | Apache-2.0; canonical text is present in the root `LICENSE` file |
-| Real paid lifecycle evidence | missing | Not required to be invented; keep claim absent |
+| Provider Agent reproducibly ONLINE | verified | Real WebSocket connection reproduced Dashboard OFFLINE→ONLINE transition; see [owner-verified CROO Dashboard state](owner-verified-croo-dashboard-state-2026-07-04.md) |
+| Real CAP lifecycle wiring implemented | verified (offline) | `accept_negotiation`/`deliver_order` wired, gated, and fake-SDK tested; never run live |
+| Real paid lifecycle evidence | missing | No funded requester Agent exists yet; not invented, keep claim absent |
 
 ## Submission safety statement
 

@@ -45,6 +45,7 @@ const elements = Object.fromEntries(
     "refresh-status", "health-status", "health-service", "cap-mode",
     "real-cap-ready", "adapter-status", "sdk-status",
     "live-execution-authorized", "mutating-methods-called", "status-message",
+    "pill-health", "pill-cap-mode",
     "risk-form", "risk-request", "risk-error", "reset-risk", "run-risk", "scenario-note",
     "risk-result", "risk-decision", "risk-score", "risk-confidence",
     "risk-regime", "risk-safe", "risk-reasons", "risk-factors",
@@ -131,6 +132,20 @@ function setMessage(node, message, isError = false) {
   node?.classList.toggle("request-state--error", isError);
 }
 
+function setFlowState(container, state) {
+  container?.setAttribute("data-flow-state", state);
+}
+
+function setPill(node, text, tone) {
+  if (!node) return;
+  const dot = node.querySelector(".pill__dot");
+  node.textContent = "";
+  if (dot) node.appendChild(dot);
+  else node.appendChild(makeElement("span", "pill__dot"));
+  node.appendChild(document.createTextNode(text));
+  node.dataset.tone = tone;
+}
+
 function renderList(node, values, emptyMessage) {
   clearNode(node);
   const items = Array.isArray(values) && values.length ? values : [emptyMessage];
@@ -193,6 +208,8 @@ function renderProof(proof) {
 async function refreshStatus() {
   setBusy(null, elements["refresh-status"], true, "Refreshing…");
   setMessage(elements["status-message"], "Reading local API posture…");
+  setPill(elements["pill-health"], "API …", "neutral");
+  setPill(elements["pill-cap-mode"], "CAP MODE …", "neutral");
   try {
     const [health, cap] = await Promise.all([
       apiRequest("/health"),
@@ -206,10 +223,15 @@ async function refreshStatus() {
     setText(elements["sdk-status"], cap.sdk_import_status);
     setText(elements["live-execution-authorized"], false);
     setText(elements["mutating-methods-called"], false);
+    const healthy = (health.status || "").toLowerCase() === "healthy";
+    setPill(elements["pill-health"], healthy ? "API HEALTHY" : "API " + (health.status || "UNKNOWN").toUpperCase(), healthy ? "safe" : "warning");
+    setPill(elements["pill-cap-mode"], "CAP MODE " + String(cap.cap_mode || "unknown").toUpperCase(), cap.cap_mode === "mock" ? "neutral" : "warning");
     setMessage(elements["status-message"], "Local posture refreshed. Missing values remain unverified.");
   } catch (error) {
     setText(elements["health-status"], "unavailable");
     setText(elements["adapter-status"], "unavailable");
+    setPill(elements["pill-health"], "API DOWN", "error");
+    setPill(elements["pill-cap-mode"], "CAP MODE UNKNOWN", "error");
     setMessage(elements["status-message"], boundedError(error), true);
   } finally {
     setBusy(null, elements["refresh-status"], false, "Refreshing…");
@@ -225,13 +247,16 @@ async function runRiskCheck(event) {
     return;
   }
   setBusy(elements["risk-result"], elements["run-risk"], true, "Checking risk…");
+  setFlowState(elements["risk-result"], "loading");
   try {
     renderRiskResult(await apiRequest("/risk-check", {
       method: "POST",
       body: JSON.stringify(request),
     }));
+    setFlowState(elements["risk-result"], "success");
   } catch (error) {
     setText(elements["risk-error"], boundedError(error), "");
+    setFlowState(elements["risk-result"], "error");
   } finally {
     setBusy(elements["risk-result"], elements["run-risk"], false, "Checking risk…");
   }
@@ -246,6 +271,7 @@ async function runMockA2A() {
   }
   setBusy(elements["a2a-result"], elements["run-a2a"], true, "Running mock…");
   setText(elements["a2a-status"], "RUNNING");
+  setFlowState(elements["a2a-result"], "loading");
   try {
     const result = await apiRequest("/a2a/mock-order", {
       method: "POST",
@@ -256,9 +282,11 @@ async function runMockA2A() {
     setText(elements["a2a-execution"], result.mock_execution_status);
     setText(elements["a2a-score"], result.risk_score);
     setText(elements["a2a-reason"], result.reason);
+    setFlowState(elements["a2a-result"], "success");
   } catch (error) {
     setText(elements["a2a-status"], "ERROR");
     setText(elements["a2a-reason"], boundedError(error));
+    setFlowState(elements["a2a-result"], "error");
   } finally {
     setBusy(elements["a2a-result"], elements["run-a2a"], false, "Running mock…");
   }
@@ -295,13 +323,19 @@ async function createLocalOrder() {
   }
   setBusy(elements["order-result"], elements["create-order"], true, "Creating local order…");
   setMessage(elements["order-message"], "Creating an in-memory mock order…");
+  setFlowState(elements["order-result"], "loading");
+  setFlowState(elements["proof-result"], "loading");
   try {
     const order = await apiRequest("/orders", { method: "POST", body: JSON.stringify(request) });
     renderOrder(order);
     setMessage(elements["order-message"], "Local mock order and delivery proof created. No external action occurred.");
+    setFlowState(elements["order-result"], "success");
+    setFlowState(elements["proof-result"], "success");
   } catch (error) {
     setText(elements["order-status"], "ERROR");
     setMessage(elements["order-message"], boundedError(error), true);
+    setFlowState(elements["order-result"], "error");
+    setFlowState(elements["proof-result"], "error");
   } finally {
     setBusy(elements["order-result"], elements["create-order"], false, "Creating local order…");
   }
@@ -311,11 +345,14 @@ async function fetchOrder() {
   const orderId = elements["order-id"].value.trim();
   if (!orderId) return setMessage(elements["order-message"], "Enter an order ID.", true);
   setBusy(elements["order-result"], elements["fetch-order"], true, "Fetching…");
+  setFlowState(elements["order-result"], "loading");
   try {
     renderOrder(await apiRequest(`/orders/${encodeURIComponent(orderId)}`));
     setMessage(elements["order-message"], "Local order retrieved.");
+    setFlowState(elements["order-result"], "success");
   } catch (error) {
     setMessage(elements["order-message"], boundedError(error), true);
+    setFlowState(elements["order-result"], "error");
   } finally {
     setBusy(elements["order-result"], elements["fetch-order"], false, "Fetching…");
   }
@@ -325,11 +362,14 @@ async function fetchProof() {
   const proofId = elements["proof-id"].value.trim();
   if (!proofId) return setMessage(elements["order-message"], "Enter a proof ID.", true);
   setBusy(elements["proof-result"], elements["fetch-proof"], true, "Fetching…");
+  setFlowState(elements["proof-result"], "loading");
   try {
     renderProof(await apiRequest(`/proof/${encodeURIComponent(proofId)}`));
     setMessage(elements["order-message"], "Local delivery proof retrieved.");
+    setFlowState(elements["proof-result"], "success");
   } catch (error) {
     setMessage(elements["order-message"], boundedError(error), true);
+    setFlowState(elements["proof-result"], "error");
   } finally {
     setBusy(elements["proof-result"], elements["fetch-proof"], false, "Fetching…");
   }

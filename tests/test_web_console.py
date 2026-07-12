@@ -106,12 +106,12 @@ def test_console_styles_follow_design_contract_semantic_colors() -> None:
     stylesheet = client.get("/static/styles.css").text
 
     for token in (
-        "#070a0d",
+        "#05080f",
         "#57e6a5",
-        "#ff5d6c",
+        "#ff4d5e",
         "#f2b84b",
         "#a9b8c2",
-        "#293a47",
+        "#1c2c42",
     ):
         assert token in stylesheet.casefold()
 
